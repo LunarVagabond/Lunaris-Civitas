@@ -88,6 +88,15 @@ make export-resources
 
 This exports all resource history to `_running/exports/resources_YYYYMMDD_HHMMSS.csv`. See [Operations documentation](docs/public/Operations/README.md#exporting-data) for advanced options.
 
+### Export Entity History
+
+Export entity history to CSV for analysis:
+```bash
+make export-entities
+```
+
+This exports all entity history to `_running/exports/entities_YYYYMMDD_HHMMSS.csv`. See [Operations documentation](docs/public/Operations/README.md#export-entity-history) for advanced options.
+
 ### Command Line Options
 
 - `--config PATH`: Path to configuration file (YAML or JSON)

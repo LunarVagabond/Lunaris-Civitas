@@ -23,6 +23,7 @@ help:
 	@echo "  make world-state-view - Display current world state summary"
 	@echo "  make resources-view - Display all resources and their states"
 	@echo "  make export-resources - Export resource history to CSV"
+	@echo "  make export-entities - Export entity history to CSV"
 	@echo "  make clean    - Clean build artifacts"
 	@echo "  make help     - Show this help message"
 
@@ -165,6 +166,11 @@ export-resources: $(VENV)
 	@mkdir -p _running/exports
 	$(PYTHON) -m src.cli.export_resources
 	@echo "Resource history exported to _running/exports/"
+
+export-entities: $(VENV)
+	@mkdir -p _running/exports
+	$(PYTHON) -m src.cli.export_entities
+	@echo "Entity history exported to _running/exports/"
 
 clean:
 	@rm -rf _running/*.db

@@ -25,6 +25,7 @@ systems:
   - ResourceConsumptionSystem
   - ResourceReplenishmentSystem
   - ResourceHistorySystem
+  - EntityHistorySystem
 
 systems_config:
   ResourceProductionSystem:
@@ -116,3 +117,32 @@ ResourceHistorySystem:
 ```
 
 History data is stored in the `resource_history` table and can be exported to CSV using `make export-resources`.
+
+### EntityHistorySystem
+
+Tracks entity and component metrics over time for analytics. Configuration:
+
+- `enabled`: Enable/disable history tracking (default: `true`)
+- `frequency`: Save frequency - `'hourly'`, `'daily'`, `'weekly'`, `'monthly'`, or `'yearly'` (default: `'daily'`)
+- `rate`: Save every N periods (e.g., `rate: 2` with `frequency: daily` = save every 2 days) (default: `1`)
+- `component_types`: List of component types to track (empty list = track all components) (default: `[]`)
+
+**Example:**
+```yaml
+EntityHistorySystem:
+  enabled: true
+  frequency: daily  # Save history daily at midnight
+  rate: 1  # Every 1 day
+  component_types: []  # Track all components
+```
+
+**Metrics Tracked:**
+- Total entity count
+- Component distribution (JSON: component_type -> count)
+- Average needs levels (hunger, thirst, rest)
+- Average pressure level and entities with pressure
+- Average health and entities at risk
+- Average age and wealth
+- Employment count
+
+History data is stored in the `entity_history` table and can be exported to CSV using `make export-entities`.

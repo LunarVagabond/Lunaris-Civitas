@@ -273,6 +273,37 @@ class Database:
             ON resource_history(resource_id)
         """)
         
+        # Entity history table (time-series data for entity metrics)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS entity_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                tick INTEGER NOT NULL,
+                total_entities INTEGER NOT NULL,
+                component_counts TEXT NOT NULL,
+                avg_hunger REAL,
+                avg_thirst REAL,
+                avg_rest REAL,
+                avg_pressure_level REAL,
+                entities_with_pressure INTEGER,
+                avg_health REAL,
+                entities_at_risk INTEGER,
+                avg_age_years REAL,
+                avg_wealth REAL,
+                employed_count INTEGER
+            )
+        """)
+        
+        # Create indexes for query performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_entity_history_timestamp 
+            ON entity_history(timestamp)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_entity_history_tick 
+            ON entity_history(tick)
+        """)
+        
         # Entities table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS entities (
@@ -616,6 +647,101 @@ class Database:
         
         query = "SELECT * FROM resource_history WHERE resource_id = ?"
         params = [resource_id]
+        
+        if start_tick is not None:
+            query += " AND tick >= ?"
+            params.append(start_tick)
+        
+        if end_tick is not None:
+            query += " AND tick <= ?"
+            params.append(end_tick)
+        
+        if start_datetime is not None:
+            query += " AND timestamp >= ?"
+            params.append(start_datetime)
+        
+        if end_datetime is not None:
+            query += " AND timestamp <= ?"
+            params.append(end_datetime)
+        
+        query += " ORDER BY tick ASC, timestamp ASC"
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        return [dict(row) for row in rows]
+    
+    def save_entity_history(
+        self,
+        timestamp: str,
+        tick: int,
+        total_entities: int,
+        component_counts: str,
+        avg_hunger: Optional[float] = None,
+        avg_thirst: Optional[float] = None,
+        avg_rest: Optional[float] = None,
+        avg_pressure_level: Optional[float] = None,
+        entities_with_pressure: int = 0,
+        avg_health: Optional[float] = None,
+        entities_at_risk: int = 0,
+        avg_age_years: Optional[float] = None,
+        avg_wealth: Optional[float] = None,
+        employed_count: int = 0
+    ) -> None:
+        """Save entity history record to database.
+        
+        Args:
+            timestamp: ISO format datetime string
+            tick: Simulation tick number
+            total_entities: Total number of entities
+            component_counts: JSON string of component_type -> count
+            avg_hunger: Average hunger level (0.0-1.0)
+            avg_thirst: Average thirst level (0.0-1.0)
+            avg_rest: Average rest level (0.0-1.0)
+            avg_pressure_level: Average pressure level (0.0-1.0)
+            entities_with_pressure: Count of entities with pressure > 0
+            avg_health: Average health level (0.0-1.0)
+            entities_at_risk: Count of entities with health < 0.5
+            avg_age_years: Average age in years
+            avg_wealth: Average wealth/money
+            employed_count: Count of employed entities
+        """
+        cursor = self._connection.cursor()
+        cursor.execute("""
+            INSERT INTO entity_history 
+            (timestamp, tick, total_entities, component_counts, avg_hunger, avg_thirst, 
+             avg_rest, avg_pressure_level, entities_with_pressure, avg_health, 
+             entities_at_risk, avg_age_years, avg_wealth, employed_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            timestamp, tick, total_entities, component_counts, avg_hunger, avg_thirst,
+            avg_rest, avg_pressure_level, entities_with_pressure, avg_health,
+            entities_at_risk, avg_age_years, avg_wealth, employed_count
+        ))
+        self._connection.commit()
+    
+    def get_entity_history(
+        self,
+        start_tick: Optional[int] = None,
+        end_tick: Optional[int] = None,
+        start_datetime: Optional[str] = None,
+        end_datetime: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get entity history records.
+        
+        Args:
+            start_tick: Optional start tick (inclusive)
+            end_tick: Optional end tick (inclusive)
+            start_datetime: Optional start datetime ISO string (inclusive)
+            end_datetime: Optional end datetime ISO string (inclusive)
+            
+        Returns:
+            List of history records as dictionaries
+        """
+        cursor = self._connection.cursor()
+        
+        query = "SELECT * FROM entity_history WHERE 1=1"
+        params = []
         
         if start_tick is not None:
             query += " AND tick >= ?"

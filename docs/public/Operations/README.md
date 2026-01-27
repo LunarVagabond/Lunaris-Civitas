@@ -107,3 +107,50 @@ Standard format (one row per resource per timestamp):
 Pivot format (`--pivot`):
 - One row per timestamp
 - Columns: `timestamp`, `tick`, `{resource_id}_amount`, `{resource_id}_status`, `{resource_id}_utilization` for each resource
+
+### Export Entity History
+
+Export entity history to CSV for analysis:
+
+```bash
+make export-entities
+```
+
+This exports all entity history to `_running/exports/entities_YYYYMMDD_HHMMSS.csv`.
+
+**Advanced options:**
+
+```bash
+# Export by tick range
+python -m src.cli.export_entities --start-tick 100 --end-tick 200
+
+# Export by date range
+python -m src.cli.export_entities --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
+
+# Export to specific file
+python -m src.cli.export_entities --output path/to/output.csv
+
+# Pivot format (component_counts expanded into columns)
+python -m src.cli.export_entities --pivot
+```
+
+**CSV Format:**
+
+Standard format (one row per timestamp):
+- `timestamp`: ISO format datetime
+- `tick`: Simulation tick number
+- `total_entities`: Total number of entities
+- `component_counts`: JSON string of component_type -> count
+- `avg_hunger`, `avg_thirst`, `avg_rest`: Average needs levels (0.0-1.0)
+- `avg_pressure_level`: Average pressure level (0.0-1.0)
+- `entities_with_pressure`: Count of entities with pressure > 0
+- `avg_health`: Average health level (0.0-1.0)
+- `entities_at_risk`: Count of entities with health < 0.5
+- `avg_age_years`: Average age in years
+- `avg_wealth`: Average wealth/money
+- `employed_count`: Count of employed entities
+
+Pivot format (`--pivot`):
+- One row per timestamp
+- Component counts expanded into separate columns: `component_count_{component_type}`
+- All other metrics as columns

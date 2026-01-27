@@ -66,6 +66,7 @@ systems:
   - ResourceConsumptionSystem
   - ResourceReplenishmentSystem
   - ResourceHistorySystem
+  - EntityHistorySystem
 
 systems_config:
   ResourceProductionSystem:
@@ -102,3 +103,13 @@ systems_config:
     frequency: daily  # Save history daily at midnight
     rate: 1  # Every 1 day
     resources: []  # Empty = track all resources
+  
+  EntityHistorySystem:
+    # Entity history tracking for analytics
+    # frequency: 'hourly', 'daily', 'weekly', 'monthly', or 'yearly'
+    # rate: Save every N periods (e.g., rate=2 means every 2 days)
+    # component_types: [] = track all components, or list specific component types
+    enabled: true
+    frequency: daily  # Save history daily at midnight
+    rate: 1  # Every 1 day
+    component_types: []  # Empty = track all components

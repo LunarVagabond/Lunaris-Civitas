@@ -128,6 +128,37 @@ systems_config:
 
 History data can be exported to CSV using the `make export-resources` command or `python -m src.cli.export_resources`.
 
+### EntityHistorySystem
+
+Tracks entity and component metrics over time for analytics and trend analysis. Saves aggregated entity history to the database at configurable intervals (hourly, daily, weekly, monthly, or yearly).
+
+**Configuration:**
+- `enabled`: Enable/disable history tracking (default: `true`)
+- `frequency`: Save frequency - `'hourly'`, `'daily'`, `'weekly'`, `'monthly'`, or `'yearly'` (default: `'daily'`)
+- `rate`: Save every N periods (e.g., `rate: 2` means every 2 days if frequency is daily) (default: `1`)
+- `component_types`: List of component types to track (empty list = track all components) (default: `[]`)
+
+**Metrics Tracked:**
+- Total entity count
+- Component distribution (how many entities have each component type)
+- Average needs levels (hunger, thirst, rest)
+- Average pressure level and entities under pressure
+- Average health and entities at risk
+- Average age and wealth
+- Employment count
+
+**Example:**
+```yaml
+systems_config:
+  EntityHistorySystem:
+    enabled: true
+    frequency: daily  # Save history daily at midnight
+    rate: 1  # Every 1 day
+    component_types: []  # Track all components
+```
+
+History data can be exported to CSV using the `make export-entities` command or `python -m src.cli.export_entities`.
+
 ## Phase 2 Systems
 
 ### RequirementResolverSystem
