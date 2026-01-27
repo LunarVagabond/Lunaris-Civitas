@@ -3,7 +3,7 @@
 > A deterministic, modular zero-player simulation engine that models human societies, resources, and emergent behaviors. Built for both **interactive exploration** and **serious research**.
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## 🎯 What is This?
 
@@ -228,21 +228,18 @@ make test
 python -m pytest tests/path/to/test_file.py
 ```
 
-## 🤝 Contributing
-
-Contributions are welcome! This is a public repository and we're happy to have contributors.
-
-When contributing:
-- Follow the phase plan (see [Roadmap](docs/public/Roadmap/PHASES.md))
-- Maintain determinism (same seed = same results)
-- Keep systems independent
-- Make everything configurable
-- Update documentation
-- Add tests
 
 ## 📄 License
 
-[Add your license here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**TL;DR**: You're free to use, modify, and distribute this software, but please include the copyright notice and license when you do. Attribution is appreciated! 🙏
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether you're fixing bugs, adding features, improving documentation, or just asking questions - we'd love to have you!
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
 
 ## 🌟 Roadmap
 
