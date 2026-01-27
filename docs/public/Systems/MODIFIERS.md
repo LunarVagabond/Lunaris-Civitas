@@ -1,22 +1,29 @@
 # Modifiers System
 
-Modifiers are dynamic events that affect resources in the simulation. They can be added via the database and support automatic repeat mechanics.
+Modifiers are dynamic events that affect resources and systems in the simulation. They can be added via the database and support automatic repeat mechanics.
 
 ## Overview
 
-Modifiers represent buffs, debuffs, and events that affect resource production, consumption, or replenishment. The system supports:
+Modifiers represent buffs, debuffs, and events that affect:
+- **Resources**: Production, consumption, or replenishment rates
+- **Systems**: System behavior parameters (e.g., death rates, birth rates, needs decay rates)
+
+The system supports:
 
 - **Dynamic addition**: Add modifiers via CLI without restarting the simulation
 - **Effect types**: Percentage-based or direct value effects
 - **Repeat mechanics**: Modifiers can automatically repeat based on probability
-- **Per-resource rows**: One modifier can affect multiple resources (one row per resource)
+- **Target flexibility**: One modifier can affect multiple targets (one row per target)
+- **System targeting**: Modifiers can target systems to modify their behavior
 
 ## Database Structure
 
-Modifiers are stored in a normalized database table with one row per resource affected:
+Modifiers are stored in a normalized database table with one row per target:
 
 - `modifier_name`: Groups related modifier rows (e.g., "pest_outbreak_2024")
-- `resource_id`: The resource this modifier affects
+- `target_type`: "resource" or "system"
+- `target_id`: Resource ID or System ID
+- `resource_id`: Resource ID (for backward compatibility, NULL if targeting system)
 - `effect_type`: "percentage" or "direct"
 - `effect_value`: Effect amount (percentage as 0.0-1.0, or absolute value)
 - `effect_direction`: "increase" or "decrease"
@@ -138,11 +145,22 @@ Shows world state summary including active modifier count.
 
 ## Modifier Application
 
-Modifiers are applied in resource systems:
+### Resource Modifiers
+
+Modifiers targeting resources are applied in resource systems:
 
 1. **Production System**: Affects resource production rates
 2. **Consumption System**: Affects resource consumption rates
 3. **Replenishment System**: Affects resource replenishment rates
+
+### System Modifiers
+
+Modifiers targeting systems affect system behavior parameters:
+
+1. **DeathSystem**: Modifies death probability (age-based mortality)
+2. **HumanSpawnSystem**: Modifies birth/spawn rates
+3. **NeedsSystem**: Can modify needs decay rates (future)
+4. **HealthSystem**: Can modify damage/healing rates (future)
 
 ### Application Order
 
@@ -151,10 +169,10 @@ Modifiers are applied in resource systems:
 
 ### Stacking
 
-Multiple modifiers affecting the same resource are applied sequentially:
+Multiple modifiers affecting the same target are applied sequentially:
 - Percentage effects are multiplicative
 - Direct effects are additive
-- Final rate is clamped to non-negative values
+- Final value is clamped to valid ranges (non-negative, probability bounds, etc.)
 
 ## Examples
 
@@ -196,12 +214,45 @@ Adds 1000 units of oil directly:
 ```bash
 make modifier-add
 # Name: oil_discovery_2024
+# Target type: resource
 # Resources: oil
 # Effect type: direct
 # Effect value: 1000
 # Direction: increase
 # Start: 2024, End: 2024
 # Note: Direct effects on production add resources
+```
+
+### Increased Death Rate (Pandemic)
+
+Increases death rate by 50% for 2 years:
+
+```bash
+make modifier-add
+# Name: pandemic_2024
+# Target type: system
+# System ID: DeathSystem
+# Effect type: percentage
+# Effect value: 0.5
+# Direction: increase
+# Start: 2024, End: 2026
+# Note: This increases age-based death probability by 50%
+```
+
+### Decreased Birth Rate (Fertility Crisis)
+
+Decreases birth/spawn rate by 30% for 5 years:
+
+```bash
+make modifier-add
+# Name: fertility_crisis_2024
+# Target type: system
+# System ID: HumanSpawnSystem
+# Effect type: percentage
+# Effect value: 0.3
+# Direction: decrease
+# Start: 2024, End: 2029
+# Note: This reduces spawn rate by 30% (e.g., 10 → 7 per period)
 ```
 
 ## Database Queries

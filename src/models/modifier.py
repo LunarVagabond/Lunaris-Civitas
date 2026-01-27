@@ -24,25 +24,27 @@ class Modifier:
     def __init__(
         self,
         modifier_name: str,
-        resource_id: str,
-        start_year: int,
-        end_year: int,
-        effect_type: str,
-        effect_value: float,
-        effect_direction: str,
+        resource_id: Optional[str] = None,
+        start_year: int = None,
+        end_year: int = None,
+        effect_type: str = None,
+        effect_value: float = None,
+        effect_direction: str = None,
         is_active: bool = True,
         repeat_probability: float = 0.0,
         repeat_frequency: str = 'yearly',
         repeat_rate: int = 1,
         repeat_duration_years: Optional[int] = None,
         parent_modifier_id: Optional[int] = None,
-        db_id: Optional[int] = None
+        db_id: Optional[int] = None,
+        target_type: Optional[str] = None,
+        target_id: Optional[str] = None
     ):
         """Initialize a modifier.
         
         Args:
             modifier_name: Human-readable name grouping related modifier rows
-            resource_id: Resource ID this modifier affects
+            resource_id: Resource ID this modifier affects (for backward compatibility)
             start_year: Start year
             end_year: End year, exclusive
             effect_type: Effect type ('percentage' or 'direct')
@@ -55,6 +57,8 @@ class Modifier:
             repeat_duration_years: Duration of repeat in years (None = same as original)
             parent_modifier_id: ID of parent modifier if this is a repeat
             db_id: Database ID
+            target_type: Target type ('resource' or 'system')
+            target_id: Target ID (resource_id or system_id)
         """
         # Validate required fields
         if start_year is None or end_year is None:
@@ -66,10 +70,27 @@ class Modifier:
         if effect_direction not in ('increase', 'decrease'):
             raise ValueError(f"effect_direction must be 'increase' or 'decrease', got '{effect_direction}'")
         
+        # Determine target_type and target_id
+        # Backward compatibility: if resource_id provided, use it
+        if resource_id is not None:
+            self.target_type = 'resource'
+            self.target_id = resource_id
+            self.resource_id = resource_id
+        elif target_type and target_id:
+            self.target_type = target_type
+            self.target_id = target_id
+            # Set resource_id for backward compatibility if targeting resource
+            self.resource_id = target_id if target_type == 'resource' else None
+        else:
+            raise ValueError("Either resource_id or (target_type, target_id) must be provided")
+        
+        # Validate target_type
+        if self.target_type not in ('resource', 'system'):
+            raise ValueError(f"target_type must be 'resource' or 'system', got '{self.target_type}'")
+        
         # Set fields
         self.db_id = db_id
         self.modifier_name = modifier_name
-        self.resource_id = resource_id
         self.start_year = start_year
         self.end_year = end_year
         self.effect_type_str = effect_type
@@ -91,7 +112,7 @@ class Modifier:
         # Convert years to datetime for compatibility
         self.start_datetime = datetime(start_year, 1, 1)
         self.end_datetime = datetime(end_year, 1, 1)
-        self.id = f"{modifier_name}_{resource_id}_{db_id}" if db_id else f"{modifier_name}_{resource_id}"
+        self.id = f"{modifier_name}_{self.target_type}_{self.target_id}_{db_id}" if db_id else f"{modifier_name}_{self.target_type}_{self.target_id}"
         
         # Always new structure
         self._is_new_structure = True
@@ -180,7 +201,18 @@ class Modifier:
         Returns:
             True if modifier targets this resource
         """
-        return self.resource_id == resource_id
+        return self.target_type == 'resource' and self.target_id == resource_id
+    
+    def targets_system(self, system_id: str) -> bool:
+        """Check if this modifier targets a specific system.
+        
+        Args:
+            system_id: System ID to check
+            
+        Returns:
+            True if modifier targets this system
+        """
+        return self.target_type == 'system' and self.target_id == system_id
     
     def to_dict(self) -> dict:
         """Serialize modifier to dictionary.
@@ -191,6 +223,8 @@ class Modifier:
         return {
             'modifier_name': self.modifier_name,
             'resource_id': self.resource_id,
+            'target_type': self.target_type,
+            'target_id': self.target_id,
             'start_year': self.start_year,
             'end_year': self.end_year,
             'effect_type': self.effect_type_str,
@@ -215,9 +249,14 @@ class Modifier:
         Returns:
             Modifier instance restored from data
         """
+        # Support both old format (resource_id) and new format (target_type/target_id)
+        target_type = data.get('target_type')
+        target_id = data.get('target_id')
+        resource_id = data.get('resource_id')
+        
         return cls(
             modifier_name=data['modifier_name'],
-            resource_id=data['resource_id'],
+            resource_id=resource_id,  # For backward compatibility
             start_year=data['start_year'],
             end_year=data['end_year'],
             effect_type=data['effect_type'],
@@ -229,5 +268,7 @@ class Modifier:
             repeat_rate=data.get('repeat_rate', 1),
             repeat_duration_years=data.get('repeat_duration_years'),
             parent_modifier_id=data.get('parent_modifier_id'),
-            db_id=data.get('db_id')
+            db_id=data.get('db_id'),
+            target_type=target_type,
+            target_id=target_id
         )

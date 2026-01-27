@@ -161,6 +161,154 @@ History data can be exported to CSV using the `make export-entities` command or 
 
 ## Phase 2 Systems
 
+### HumanSpawnSystem
+
+Creates initial population and supports runtime spawning (TEMPORARY PLACEHOLDER for Phase 3 reproduction system).
+
+**NOTE**: Runtime spawning is a temporary placeholder. This system will be replaced by a proper reproduction system in Phase 3 that handles births based on fertility, relationships, and other factors.
+
+**Features:**
+- Creates initial "seed crew" with randomized ages
+- Supports ongoing spawning during simulation (with clear documentation this is temporary)
+- Runtime births always use current simulation date as birth_date (age = 0)
+- Configurable population size and component distributions
+
+**Configuration:**
+```yaml
+systems_config:
+  HumanSpawnSystem:
+    enabled: true
+    initial_population: 100
+    spawn_frequency: daily  # hourly, daily, weekly, monthly, yearly
+    spawn_rate: 0  # 0 = disabled, N = spawn N entities per period
+    seed_crew:
+      age_range: [18, 65]  # Years for initial population
+      components:
+        Needs: 100  # Percentage (all get Needs)
+        Health: 100
+        Age: 100
+        Pressure: 50  # 50% get Pressure
+    runtime_spawn:
+      components:
+        Needs: 100
+        Health: 100
+        Age: 100  # Always age 0 (birth_date = current_date)
+        Pressure: 0  # Newborns start without pressure
+```
+
+### NeedsSystem
+
+Updates entity needs (hunger, thirst, rest) over time with randomized decay rates per entity (individual metabolism).
+
+**Features:**
+- Each entity has randomized decay rates (set on first tick, persistent)
+- Configurable base rates with per-entity variation
+- Runs hourly to update needs
+
+**Configuration:**
+```yaml
+systems_config:
+  NeedsSystem:
+    enabled: true
+    frequency: hourly  # Always hourly for needs decay
+    base_hunger_rate: 0.01  # Per hour, base rate
+    hunger_rate_variance: 0.005  # ±variance for randomization
+    base_thirst_rate: 0.015
+    thirst_rate_variance: 0.005
+    base_rest_rate: 0.005
+    rest_rate_variance: 0.002
+```
+
+### HumanNeedsFulfillmentSystem
+
+Actively fulfills needs by calling RequirementResolverSystem with randomized satisfaction amounts.
+
+**Features:**
+- Queries entities with NeedsComponent
+- Gets requirements via `get_resource_requirements()`
+- Calls RequirementResolverSystem to fulfill
+- Applies randomized satisfaction amounts (e.g., 5-10 units restore hunger)
+- Adds pressure on failure
+
+**Configuration:**
+```yaml
+systems_config:
+  HumanNeedsFulfillmentSystem:
+    enabled: true
+    frequency: hourly
+    satisfaction_ranges:
+      food:
+        hunger_restore_min: 0.05  # Per unit (randomized per call)
+        hunger_restore_max: 0.15
+      water:
+        thirst_restore_min: 0.10
+        thirst_restore_max: 0.30
+      rest:
+        rest_restore_min: 0.05  # Per hour
+        rest_restore_max: 0.15
+```
+
+### HealthSystem
+
+Converts pressure and unmet needs into health degradation with randomized damage amounts.
+
+**Features:**
+- Updates health based on pressure level and unmet needs
+- Applies randomized damage per tick
+- Health can recover slowly if needs are met
+- Configurable damage/healing ranges
+
+**Configuration:**
+```yaml
+systems_config:
+  HealthSystem:
+    enabled: true
+    frequency: hourly
+    pressure_damage:
+      min_per_tick: 0.001  # At pressure_level = 1.0 (randomized)
+      max_per_tick: 0.005
+    unmet_needs_damage:
+      hunger:
+        min_per_tick: 0.0005  # At hunger = 1.0 (randomized)
+        max_per_tick: 0.002
+      thirst:
+        min_per_tick: 0.001
+        max_per_tick: 0.003
+      rest:
+        min_per_tick: 0.0002
+        max_per_tick: 0.001
+    healing_rate:
+      min_per_tick: 0.0001  # When needs met (randomized)
+      max_per_tick: 0.0005
+```
+
+### DeathSystem
+
+Handles entity death from health degradation and age-based mortality.
+
+**Features:**
+- Checks health <= 0 for immediate death
+- Age-based mortality with probability curve
+- Most deaths occur between 73-100 (peak around 85)
+- Exponential probability curve allows rare outliers past 100
+- No guaranteed death - probability-based only
+
+**Configuration:**
+```yaml
+systems_config:
+  DeathSystem:
+    enabled: true
+    frequency: hourly
+    age_mortality:
+      old_age_start: 70  # Years - mortality starts increasing
+      old_age_death_chance_min: 0.00001  # Per hour at old_age_start (randomized)
+      old_age_death_chance_max: 0.0001
+      peak_mortality_age: 85  # Age where most deaths occur
+      chance_increase_per_year: 0.00001  # Base increase per year
+      chance_multiplier_per_year: 1.1  # Exponential multiplier after peak
+      # No max_age - outliers can survive past 100 (very rare)
+```
+
 ### RequirementResolverSystem
 
 Resolves resource requirements by trying multiple sources in priority order. Handles contextual requirements where the same need can be met through different paths (inventory, household, market, production).
@@ -225,6 +373,26 @@ sequenceDiagram
     WS->>E: add_component(component)
     E->>C: Component.init()
     C-->>E: Initialized
+```
+
+**Human Lifecycle Flow:**
+
+```mermaid
+flowchart TD
+    Spawn[HumanSpawnSystem]
+    Needs[NeedsSystem]
+    Fulfill[HumanNeedsFulfillmentSystem]
+    Health[HealthSystem]
+    Death[DeathSystem]
+    Resolver[RequirementResolverSystem]
+    
+    Spawn -->|creates entities| Needs
+    Needs -->|updates needs| Fulfill
+    Fulfill -->|calls| Resolver
+    Resolver -->|fulfills or fails| Fulfill
+    Fulfill -->|pressure| Health
+    Health -->|health degradation| Death
+    Death -->|removes entities| End[Entity Removed]
 ```
 
 History data can be exported to CSV using the `make export-resources` command or `python -m src.cli.export_resources`.

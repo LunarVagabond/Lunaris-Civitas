@@ -212,14 +212,8 @@ class WorldState:
         Returns:
             List of active modifiers targeting the resource
         """
-        current_datetime = self.simulation_time.current_datetime
-        active = []
-        
-        for mod in self._modifiers.values():
-            if mod.resource_id == resource_id and mod.is_active(current_datetime):
-                active.append(mod)
-        
-        return active
+        # Use the general method for consistency
+        return self.get_active_modifiers(target_type='resource', target_id=resource_id)
     
     def get_modifiers_by_name(self, modifier_name: str) -> List[Modifier]:
         """Get all modifiers with a given name (groups related rows).

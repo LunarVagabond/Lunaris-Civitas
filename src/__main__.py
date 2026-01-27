@@ -10,6 +10,12 @@ from src.systems.resource.consumption import ResourceConsumptionSystem
 from src.systems.resource.replenishment import ResourceReplenishmentSystem
 from src.systems.analytics.history import ResourceHistorySystem
 from src.systems.analytics.entity_history import EntityHistorySystem
+from src.systems.human.spawn import HumanSpawnSystem
+from src.systems.human.needs import NeedsSystem
+from src.systems.human.requirement_resolver import RequirementResolverSystem
+from src.systems.human.needs_fulfillment import HumanNeedsFulfillmentSystem
+from src.systems.human.health import HealthSystem
+from src.systems.human.death import DeathSystem
 from src.core.logging import setup_logging
 
 
@@ -63,6 +69,12 @@ def main():
     sim.register_system(ResourceReplenishmentSystem())
     sim.register_system(ResourceHistorySystem())
     sim.register_system(EntityHistorySystem())
+    sim.register_system(HumanSpawnSystem())
+    sim.register_system(NeedsSystem())
+    sim.register_system(RequirementResolverSystem())
+    sim.register_system(HumanNeedsFulfillmentSystem())
+    sim.register_system(HealthSystem())
+    sim.register_system(DeathSystem())
     
     # Run simulation
     try:

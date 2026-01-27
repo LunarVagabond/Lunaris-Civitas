@@ -63,7 +63,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ## Phase 2: Base Human (Minimal Survival)
 
-**Status:** 🔜 Planned
+**Status:** ✅ Complete
 
 **Goal:** Humans don't die immediately. Basic survival mechanics.
 
@@ -74,22 +74,78 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - `Inventory`: personal resources
 - `Health`: simple health status
 - `Age`: birth date, lifespan tracking
+- `Pressure`: unmet resource requirements
+- `Wealth`: money/resources
+- `Employment`: job information
+- `Household`: household linkage
 
 **Systems:**
-- `NeedsSystem`: Updates needs (minute/hour ticks)
-- `ConsumptionSystem`: Humans consume resources based on needs (day ticks)
-- `DeathSystem`: Handles death from starvation, thirst, age
+- `HumanSpawnSystem`: Creates initial population and runtime spawning (TEMPORARY PLACEHOLDER for Phase 3 reproduction system)
+- `NeedsSystem`: Updates needs with randomized per-entity decay rates (hourly ticks)
+- `HumanNeedsFulfillmentSystem`: Actively fulfills needs through RequirementResolverSystem (hourly ticks)
+- `HealthSystem`: Converts pressure and unmet needs into health degradation (hourly ticks)
+- `DeathSystem`: Handles death from health degradation and age-based mortality (hourly ticks)
+- `RequirementResolverSystem`: Resolves resource requirements through multiple sources
 
 **Constraints:**
-- No families
-- No jobs
-- No money
+- No families (household component exists but not fully utilized)
+- No jobs (employment component exists but not fully utilized)
+- Basic money/wealth tracking
 - Just survival
 
 **Success Criteria:**
-- Humans can survive with adequate resources
-- Humans die when resources depleted
-- Population can grow/shrink based on resource availability
+- ✅ Humans can survive with adequate resources
+- ✅ Humans die when resources depleted
+- ✅ Population can grow/shrink based on resource availability
+- ✅ All decay and satisfaction amounts use randomized ranges
+- ✅ Age-based mortality allows rare outliers past 100
+
+**Note**: `HumanSpawnSystem` runtime spawning is a temporary placeholder and will be replaced by a proper reproduction system in Phase 3.
+
+---
+
+## Phase 2.5: Actions System
+
+**Status:** 🔜 Planned (Likely next phase)
+
+**Goal:** Entities perform time-based actions (eating, sleeping, working) that occupy them for periods of time.
+
+**Deliverables:**
+
+**Components:**
+- `Action` component - Current action being performed
+- `ActionQueue` component - Planned actions
+- `Traits` component - Individual characteristics (sleep needs, metabolism, etc.)
+
+**Systems:**
+- `ActionSystem` - Manages entity actions and state transitions (hourly ticks)
+- `ActionSchedulerSystem` - Plans actions based on needs and priorities (hourly ticks)
+- `TraitSystem` - Applies trait effects to actions and needs (hourly ticks)
+
+**Features:**
+- Action types: `eat`, `sleep`, `work`, `rest`, `travel`, etc.
+- Actions take time (e.g., sleep 6-12 hours)
+- Entities are "occupied" during actions (can't perform other actions)
+- Traits affect action requirements:
+  - Sleep needs: Some need 6 hours, others need 10 hours
+  - Metabolism: Some need more food, others less
+  - Activity level: Some need more rest, others can work longer
+- Action priorities based on need levels
+- Action interruption (emergency needs override current action)
+
+**Design Decisions:**
+- Actions are time-based, not instant
+- Entities can only perform one action at a time
+- Actions can be interrupted by critical needs
+- Traits create individual variation in action requirements
+- Action system enables more realistic behavior modeling
+
+**Why This Matters:**
+- Makes entity behavior more realistic
+- Enables proper sleep cycles (entities sleep 6-12 hours)
+- Foundation for work schedules, daily routines
+- Allows for individual variation through traits
+- Better models human time constraints
 
 ---
 

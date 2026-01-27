@@ -735,6 +735,94 @@ sequenceDiagram
     DB-->>WS: Saved
 ```
 
+### Human Lifecycle Flow
+
+The complete human lifecycle from spawn to death:
+
+```mermaid
+flowchart TD
+    Start([Simulation Start])
+    Spawn[HumanSpawnSystem]
+    Create[Create Entities]
+    NeedsDecay[NeedsSystem]
+    UpdateNeeds[Update Needs]
+    Fulfill[HumanNeedsFulfillmentSystem]
+    GetReqs[Get Requirements]
+    Resolve[RequirementResolverSystem]
+    Success{Success?}
+    Satisfy[Apply Satisfaction]
+    AddPressure[Add Pressure]
+    Health[HealthSystem]
+    CalcDamage[Calculate Damage]
+    ApplyDamage[Apply Damage]
+    CheckHealing{Needs Met?}
+    ApplyHealing[Apply Healing]
+    Death[DeathSystem]
+    CheckHealth{Health <= 0?}
+    CheckAge{Age >= 70?}
+    CalcProb[Calculate Death Probability]
+    Roll{Roll < Prob?}
+    Remove[Remove Entity]
+    End([End])
+    
+    Start --> Spawn
+    Spawn --> Create
+    Create --> NeedsDecay
+    NeedsDecay --> UpdateNeeds
+    UpdateNeeds --> Fulfill
+    Fulfill --> GetReqs
+    GetReqs --> Resolve
+    Resolve --> Success
+    Success -->|yes| Satisfy
+    Success -->|no| AddPressure
+    Satisfy --> Health
+    AddPressure --> Health
+    Health --> CalcDamage
+    CalcDamage --> ApplyDamage
+    ApplyDamage --> CheckHealing
+    CheckHealing -->|yes| ApplyHealing
+    CheckHealing -->|no| Death
+    ApplyHealing --> Death
+    Death --> CheckHealth
+    CheckHealth -->|yes| Remove
+    CheckHealth -->|no| CheckAge
+    CheckAge -->|yes| CalcProb
+    CheckAge -->|no| End
+    CalcProb --> Roll
+    Roll -->|yes| Remove
+    Roll -->|no| End
+    Remove --> End
+```
+
+### Need Fulfillment Flow
+
+Detailed flow of how needs are fulfilled:
+
+```mermaid
+sequenceDiagram
+    participant NS as NeedsSystem
+    participant E as Entity
+    participant NC as NeedsComponent
+    participant FNS as HumanNeedsFulfillmentSystem
+    participant RRS as RequirementResolverSystem
+    participant PC as PressureComponent
+    
+    NS->>NC: update_needs(hours=1.0)
+    NC->>NC: Increase hunger/thirst/rest
+    FNS->>E: Query entities with NeedsComponent
+    FNS->>NC: get_resource_requirements()
+    NC-->>FNS: {food: 8.0, water: 5.0}
+    FNS->>RRS: resolve_requirement(food, 8.0)
+    RRS->>RRS: Try sources in priority order
+    RRS-->>FNS: RequirementResolution(success=True, amount=5.0)
+    FNS->>NC: satisfy_hunger(5.0, random_rate)
+    NC->>NC: Reduce hunger by random amount
+    FNS->>RRS: resolve_requirement(water, 5.0)
+    RRS-->>FNS: RequirementResolution(success=False)
+    FNS->>PC: add_pressure(water, 5.0)
+    PC->>PC: Update pressure_level
+```
+
 ### Pressure Accumulation Flow
 
 When requirements cannot be fulfilled, pressure accumulates:

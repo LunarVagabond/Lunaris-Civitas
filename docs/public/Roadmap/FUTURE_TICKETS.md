@@ -30,6 +30,49 @@ This document tracks planned features, improvements, and technical debt for futu
 
 ---
 
+## Phase 2.5: Actions System
+
+**Status:** 🔜 Planned (Likely next phase)
+
+**Goal:** Entities perform time-based actions (eating, sleeping, working) that occupy them for periods of time.
+
+### Components
+- [ ] `Action` component - Current action being performed
+- [ ] `ActionQueue` component - Planned actions
+- [ ] `Traits` component - Individual characteristics (sleep needs, metabolism, etc.)
+
+### Systems
+- [ ] `ActionSystem` - Manages entity actions and state transitions (hourly ticks)
+- [ ] `ActionSchedulerSystem` - Plans actions based on needs and priorities (hourly ticks)
+- [ ] `TraitSystem` - Applies trait effects to actions and needs (hourly ticks)
+
+### Features
+- [ ] Action types: `eat`, `sleep`, `work`, `rest`, `travel`, etc.
+- [ ] Actions take time (e.g., sleep 6-12 hours)
+- [ ] Entities are "occupied" during actions (can't perform other actions)
+- [ ] Traits affect action requirements:
+  - Sleep needs: Some need 6 hours, others need 10 hours
+  - Metabolism: Some need more food, others less
+  - Activity level: Some need more rest, others can work longer
+- [ ] Action priorities based on need levels
+- [ ] Action interruption (emergency needs override current action)
+
+### Design Decisions
+- Actions are time-based, not instant
+- Entities can only perform one action at a time
+- Actions can be interrupted by critical needs
+- Traits create individual variation in action requirements
+- Action system enables more realistic behavior modeling
+
+### Why This Matters
+- Makes entity behavior more realistic
+- Enables proper sleep cycles (entities sleep 6-12 hours)
+- Foundation for work schedules, daily routines
+- Allows for individual variation through traits
+- Better models human time constraints
+
+---
+
 ## Phase 3: Time, Aging, Reproduction
 
 ### Components

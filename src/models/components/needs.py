@@ -70,32 +70,32 @@ class NeedsComponent(Component):
         self.thirst = min(1.0, self.thirst + self.thirst_rate * hours)
         self.rest = min(1.0, self.rest + self.rest_rate * hours)
     
-    def satisfy_hunger(self, amount: float) -> None:
+    def satisfy_hunger(self, amount: float, satisfaction_rate: float) -> None:
         """Satisfy hunger by consuming food.
         
         Args:
-            amount: Amount of food consumed (reduces hunger proportionally)
+            amount: Amount of food consumed
+            satisfaction_rate: Satisfaction rate per unit (e.g., 0.05-0.15, randomized per call)
         """
-        # Each unit of food reduces hunger by 0.1
-        self.hunger = max(0.0, self.hunger - amount * 0.1)
+        self.hunger = max(0.0, self.hunger - amount * satisfaction_rate)
     
-    def satisfy_thirst(self, amount: float) -> None:
+    def satisfy_thirst(self, amount: float, satisfaction_rate: float) -> None:
         """Satisfy thirst by consuming water.
         
         Args:
-            amount: Amount of water consumed (reduces thirst proportionally)
+            amount: Amount of water consumed
+            satisfaction_rate: Satisfaction rate per unit (e.g., 0.10-0.30, randomized per call)
         """
-        # Each unit of water reduces thirst by 0.2
-        self.thirst = max(0.0, self.thirst - amount * 0.2)
+        self.thirst = max(0.0, self.thirst - amount * satisfaction_rate)
     
-    def satisfy_rest(self, hours: float) -> None:
+    def satisfy_rest(self, hours: float, satisfaction_rate: float) -> None:
         """Satisfy rest by sleeping.
         
         Args:
-            hours: Hours of rest (reduces rest level)
+            hours: Hours of rest
+            satisfaction_rate: Satisfaction rate per hour (e.g., 0.05-0.15, randomized per call)
         """
-        # Each hour of rest reduces rest level by 0.1
-        self.rest = max(0.0, self.rest - hours * 0.1)
+        self.rest = max(0.0, self.rest - hours * satisfaction_rate)
     
     def to_dict(self) -> Dict[str, any]:
         """Serialize component to dictionary."""

@@ -119,21 +119,44 @@ def main():
     
     try:
         print("\n=== Add Modifier ===")
-        print("This will create modifier entries for each resource affected.\n")
+        print("Modifiers can target resources or systems.\n")
         
         # Get modifier name
         modifier_name = get_input("Modifier name")
         
-        # Get resource IDs
+        # Get target type
+        print("\nTarget types:")
+        print("  resource - Affects resource production/consumption/replenishment")
+        print("  system - Affects system behavior (e.g., death rate, birth rate)")
+        target_type = get_input(
+            "Target type (resource/system)",
+            default="resource",
+            validator=lambda v: v.lower() in ('resource', 'system') or (False, "Must be 'resource' or 'system'")
+        ).lower()
+        
         cursor = db._connection.cursor()
-        cursor.execute("SELECT id FROM resources ORDER BY id")
-        available_resources = [row[0] for row in cursor.fetchall()]
-        print(f"\nAvailable resources: {', '.join(available_resources)}")
-        resource_ids_str = get_input(
-            "Resource IDs (comma-separated)",
-            validator=lambda v: validate_resource_ids(v, db)
-        )
-        resource_ids = [r.strip() for r in resource_ids_str.split(',')]
+        
+        if target_type == 'resource':
+            # Get resource IDs
+            cursor.execute("SELECT id FROM resources ORDER BY id")
+            available_resources = [row[0] for row in cursor.fetchall()]
+            print(f"\nAvailable resources: {', '.join(available_resources)}")
+            target_ids_str = get_input(
+                "Resource IDs (comma-separated)",
+                validator=lambda v: validate_resource_ids(v, db)
+            )
+            target_ids = [r.strip() for r in target_ids_str.split(',')]
+        else:
+            # Get system IDs
+            # Common system IDs
+            common_systems = [
+                "DeathSystem", "HumanSpawnSystem", "NeedsSystem", 
+                "HealthSystem", "HumanNeedsFulfillmentSystem"
+            ]
+            print(f"\nCommon systems: {', '.join(common_systems)}")
+            print("(You can also enter any system_id)")
+            system_id = get_input("System ID")
+            target_ids = [system_id]
         
         # Get effect type
         print("\nEffect types:")
@@ -207,20 +230,25 @@ def main():
             repeat_rate = 1
             repeat_duration_years = None
         
-        # Insert modifier rows (one per resource)
+        # Insert modifier rows (one per target)
         cursor = db._connection.cursor()
         inserted_count = 0
         
-        for resource_id in resource_ids:
+        for target_id in target_ids:
+            # Set resource_id for backward compatibility (only if targeting resource)
+            resource_id = target_id if target_type == 'resource' else None
+            
             cursor.execute("""
                 INSERT INTO modifiers 
-                (modifier_name, resource_id, effect_type, effect_value, effect_direction,
+                (modifier_name, resource_id, target_type, target_id, effect_type, effect_value, effect_direction,
                  start_year, end_year, is_active, repeat_probability, repeat_frequency, 
                  repeat_rate, repeat_duration_years, parent_modifier_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, NULL)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, NULL)
             """, (
                 modifier_name,
                 resource_id,
+                target_type,
+                target_id,
                 effect_type_str,
                 effect_value,
                 effect_direction,
@@ -235,9 +263,10 @@ def main():
         
         db._connection.commit()
         
+        target_type_name = "resource" if target_type == 'resource' else "system"
         print(f"\n✓ Successfully created {inserted_count} modifier row(s)")
         print(f"  Modifier: {modifier_name}")
-        print(f"  Resources: {', '.join(resource_ids)}")
+        print(f"  Target: {target_type_name}(s): {', '.join(target_ids)}")
         print(f"  Effect: {effect_type_str} {effect_direction} by {effect_value}")
         print(f"  Duration: {start_year}-{end_year}")
         if repeat_probability > 0.0:

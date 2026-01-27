@@ -37,6 +37,7 @@ class EntityHistorySystem(System):
         self.component_types: List[str] = []  # Empty = track all components
         self.last_save: Optional[datetime] = None
         self.db_path: Optional[Path] = None
+        self.last_population: Optional[int] = None  # Track previous population for rate calculation
     
     def init(self, world_state: Any, config: Dict[str, Any]) -> None:
         """Initialize the system with configuration.
@@ -109,7 +110,38 @@ class EntityHistorySystem(System):
             return
         
         # Calculate aggregated metrics
+        current_population = len(all_entities)
         metrics = self._calculate_metrics(all_entities, current_datetime)
+        
+        # Calculate birth and death rates (per 1000 population per period)
+        birth_rate = None
+        death_rate = None
+        
+        if self.last_population is not None:
+            # Calculate change in population
+            population_change = current_population - self.last_population
+            
+            # Calculate period length in days for rate normalization
+            if self.last_save:
+                period_days = (current_datetime - self.last_save).days
+                if period_days > 0:
+                    # Average population during period
+                    avg_population = (self.last_population + current_population) / 2.0
+                    if avg_population > 0:
+                        # Births = positive change (new entities)
+                        births = max(0, population_change)
+                        # Deaths = negative change (removed entities)
+                        deaths = max(0, -population_change)
+                        
+                        # Calculate rates per 1000 population per period
+                        # Then normalize to per year for consistency
+                        days_per_year = 365.25
+                        if period_days > 0:
+                            birth_rate = (births / avg_population) * 1000 * (days_per_year / period_days)
+                            death_rate = (deaths / avg_population) * 1000 * (days_per_year / period_days)
+        
+        metrics['birth_rate'] = birth_rate
+        metrics['death_rate'] = death_rate
         
         # Save history
         timestamp = current_datetime.isoformat()
@@ -124,6 +156,7 @@ class EntityHistorySystem(System):
                 )
             
             self.last_save = current_datetime
+            self.last_population = current_population
             logger.debug(
                 f"Saved entity history for {metrics['total_entities']} entities "
                 f"at {current_datetime.isoformat()}"

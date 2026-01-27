@@ -56,6 +56,7 @@ class Simulation:
         self.last_resource_values: Dict[str, float] = {}  # resource_id -> last logged amount
         self.last_log_ticks: int = 0  # Ticks at last log
         self.start_datetime: Optional[datetime] = None  # Simulation start datetime for elapsed time
+        self.last_population: Optional[int] = None  # Previous population for birth/death rate calculation
     
     def register_system(self, system: System) -> None:
         """Register a system with the simulation.
@@ -153,6 +154,9 @@ class Simulation:
         for resource_id, resource in self.world_state.get_all_resources().items():
             self.last_resource_values[resource_id] = resource.current_amount
         self.last_log_ticks = self.world_state.simulation_time.ticks_elapsed
+        # Initialize population tracking
+        entities = self.world_state.get_all_entities()
+        self.last_population = len(entities)
         
         logger.debug(
             f"Initialized new simulation: {len(self.world_state.get_all_resources())} resources, "
@@ -195,6 +199,9 @@ class Simulation:
         for resource_id, resource in self.world_state.get_all_resources().items():
             self.last_resource_values[resource_id] = resource.current_amount
         self.last_log_ticks = self.world_state.simulation_time.ticks_elapsed
+        # Initialize population tracking
+        entities = self.world_state.get_all_entities()
+        self.last_population = len(entities)
         
         logger.debug(
             f"Resumed simulation: {self.world_state.simulation_time.current_datetime}, "
@@ -257,6 +264,33 @@ class Simulation:
                             f"Error in system {system.system_id} on tick {tick_count}: {e}",
                             exc_info=True
                         )
+                
+                # Check for population extinction (game over)
+                # Only check if human systems are registered (otherwise population=0 is expected)
+                has_human_systems = any(
+                    system_id in ('HumanSpawnSystem', 'DeathSystem', 'NeedsSystem', 
+                                 'HumanNeedsFulfillmentSystem', 'HealthSystem')
+                    for system_id in self.world_state._systems.keys()
+                )
+                if has_human_systems:
+                    entities = self.world_state.get_all_entities()
+                    population = len(entities)
+                    if population == 0:
+                        logger.warning("")
+                        logger.warning("=" * 80)
+                        logger.warning("GAME OVER - Population Extinction")
+                        logger.warning("=" * 80)
+                        logger.warning(f"Simulation ended at {self._format_readable_date(current_datetime)}")
+                        logger.warning(f"Total ticks: {tick_count:,}")
+                        if self.start_datetime:
+                            elapsed = self._format_time_elapsed(self.start_datetime, current_datetime)
+                            logger.warning(f"Time elapsed: {elapsed}")
+                        logger.warning("")
+                        logger.warning("Final World State:")
+                        self._log_world_state(frequency='hourly', rate=1)
+                        logger.warning("=" * 80)
+                        logger.warning("")
+                        break
                 
                 # Periodic save (every 24 ticks = 1 day)
                 if tick_count % 24 == 0:
@@ -526,10 +560,10 @@ class Simulation:
             new_start_year = parent_modifier.end_year + 1
         new_end_year = new_start_year + duration_years
         
-        # Create new modifier entry (same resource, inherits all properties)
+        # Create new modifier entry (same target, inherits all properties)
         new_modifier = Modifier(
             modifier_name=parent_modifier.modifier_name,
-            resource_id=parent_modifier.resource_id,
+            resource_id=parent_modifier.resource_id,  # For backward compatibility
             start_year=new_start_year,
             end_year=new_end_year,
             effect_type=parent_modifier.effect_type_str,
@@ -540,11 +574,13 @@ class Simulation:
             repeat_frequency=parent_modifier.repeat_frequency_str,
             repeat_rate=parent_modifier.repeat_rate,
             repeat_duration_years=parent_modifier.repeat_duration_years,
-            parent_modifier_id=parent_modifier.db_id
+            parent_modifier_id=parent_modifier.db_id,
+            target_type=parent_modifier.target_type,
+            target_id=parent_modifier.target_id
         )
         
         # Add to world state
-        modifier_id = f"{new_modifier.modifier_name}_{new_modifier.resource_id}_{new_start_year}"
+        modifier_id = f"{new_modifier.modifier_name}_{new_modifier.target_type}_{new_modifier.target_id}_{new_start_year}"
         self.world_state._modifiers[modifier_id] = new_modifier
         
         # Also save to database immediately
@@ -555,13 +591,15 @@ class Simulation:
             cursor = db._connection.cursor()
             cursor.execute("""
                 INSERT INTO modifiers 
-                (modifier_name, resource_id, effect_type, effect_value, effect_direction,
+                (modifier_name, resource_id, target_type, target_id, effect_type, effect_value, effect_direction,
                  start_year, end_year, is_active, repeat_probability, repeat_frequency, 
                  repeat_rate, repeat_duration_years, parent_modifier_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 new_modifier.modifier_name,
                 new_modifier.resource_id,
+                new_modifier.target_type,
+                new_modifier.target_id,
                 new_modifier.effect_type_str,
                 new_modifier.effect_value,
                 new_modifier.effect_direction,
@@ -653,18 +691,86 @@ class Simulation:
         active_modifiers = self.world_state.get_active_modifiers()
         modifier_count = len(active_modifiers)
         
-        # Format summary
-        changes_summary = ", ".join(resource_changes)
-        rates_summary = ", ".join(resource_rates) if resource_rates else "N/A"
+        # Calculate entity metrics
+        entities = self.world_state.get_all_entities()
+        total_population = len(entities)
         
-        # Enhanced log line with all information
-        logger.info(
-            f"World State | {readable_date} (Tick {ticks}{elapsed_str}) | "
-            f"Systems: {len(system_ids)} [{', '.join(system_ids)}] | "
-            f"Resources: {changes_summary} | "
-            f"Rates: {rates_summary} | "
-            f"Modifiers: {modifier_count}"
-        )
+        sick_count = 0
+        old_count = 0
+        at_risk_count = 0
+        
+        for entity in entities.values():
+            health = entity.get_component('Health')
+            if health:
+                if health.health < 0.5:
+                    sick_count += 1
+                    at_risk_count += 1
+                elif health.health < 0.7:
+                    at_risk_count += 1
+            
+            age = entity.get_component('Age')
+            if age:
+                age_years = age.get_age_years(current_datetime)
+                if age_years >= 70:
+                    old_count += 1
+        
+        # Calculate percentages
+        sick_percent = (sick_count / total_population * 100) if total_population > 0 else 0.0
+        old_percent = (old_count / total_population * 100) if total_population > 0 else 0.0
+        at_risk_percent = (at_risk_count / total_population * 100) if total_population > 0 else 0.0
+        
+        # Calculate birth and death rates (per 1000 population per year)
+        birth_rate_str = "N/A"
+        death_rate_str = "N/A"
+        
+        if self.last_population is not None and self.last_world_state_log:
+            # Calculate period length in days
+            period_days = (current_datetime - self.last_world_state_log).days
+            if period_days > 0:
+                # Average population during period
+                avg_population = (self.last_population + total_population) / 2.0
+                if avg_population > 0:
+                    # Population change
+                    population_change = total_population - self.last_population
+                    births = max(0, population_change)
+                    deaths = max(0, -population_change)
+                    
+                    # Calculate rates per 1000 population per year
+                    days_per_year = 365.25
+                    birth_rate = (births / avg_population) * 1000 * (days_per_year / period_days)
+                    death_rate = (deaths / avg_population) * 1000 * (days_per_year / period_days)
+                    
+                    birth_rate_str = f"{birth_rate:.2f}"
+                    death_rate_str = f"{death_rate:.2f}"
+        
+        # Update last population for next calculation
+        self.last_population = total_population
+        
+        # Format summary vertically
+        logger.info("")
+        logger.info("=" * 80)
+        logger.info(f"World State - {readable_date} (Tick {ticks}{elapsed_str})")
+        logger.info("=" * 80)
+        logger.info(f"  Systems: {len(system_ids)}")
+        logger.info(f"    {', '.join(system_ids)}")
+        logger.info("")
+        logger.info(f"  Population: {total_population:,}")
+        logger.info(f"    Sick: {sick_count:,} ({sick_percent:.1f}%)")
+        logger.info(f"    Old (70+): {old_count:,} ({old_percent:.1f}%)")
+        logger.info(f"    At Risk: {at_risk_count:,} ({at_risk_percent:.1f}%)")
+        logger.info(f"    Birth Rate: {birth_rate_str} per 1000/year")
+        logger.info(f"    Death Rate: {death_rate_str} per 1000/year")
+        logger.info("")
+        logger.info("  Resources:")
+        for change in resource_changes:
+            logger.info(f"    {change}")
+        if resource_rates:
+            logger.info("  Rates:")
+            for rate in resource_rates:
+                logger.info(f"    {rate}")
+        logger.info(f"  Modifiers: {modifier_count}")
+        logger.info("=" * 80)
+        logger.info("")
         
         # Update last log ticks and datetime
         self.last_log_ticks = ticks

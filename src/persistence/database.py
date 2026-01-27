@@ -175,12 +175,16 @@ class Database:
                     SELECT * FROM modifiers
                 """)
         
-        # New modifiers table (normalized: one row per resource)
+        # New modifiers table (normalized: one row per target)
+        # Note: target_type and target_id are nullable for migration compatibility
+        # but should always be set in practice (enforced at application level)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS modifiers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 modifier_name TEXT NOT NULL,
-                resource_id TEXT NOT NULL,
+                resource_id TEXT,  -- NULL if targeting a system
+                target_type TEXT CHECK(target_type IN ('resource', 'system')),
+                target_id TEXT,  -- resource_id or system_id
                 effect_type TEXT NOT NULL,
                 effect_value REAL NOT NULL,
                 effect_direction TEXT NOT NULL CHECK(effect_direction IN ('increase', 'decrease')),
@@ -199,6 +203,24 @@ class Database:
                 FOREIGN KEY (resource_id) REFERENCES resources(id)
             )
         """)
+        
+        # Migration: Add target_type and target_id columns if they don't exist
+        cursor.execute("PRAGMA table_info(modifiers)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'target_type' not in columns:
+            # Add column as nullable first, then update, then make NOT NULL
+            cursor.execute("ALTER TABLE modifiers ADD COLUMN target_type TEXT")
+            # Set target_type based on existing resource_id
+            cursor.execute("UPDATE modifiers SET target_type = 'resource' WHERE target_type IS NULL")
+            # Note: SQLite doesn't support ALTER COLUMN, so we can't make it NOT NULL
+            # The constraint is enforced at application level
+        if 'target_id' not in columns:
+            # Add column as nullable first, then update
+            cursor.execute("ALTER TABLE modifiers ADD COLUMN target_id TEXT")
+            # Migrate existing resource_id to target_id
+            cursor.execute("UPDATE modifiers SET target_id = resource_id WHERE target_id IS NULL")
+            # Note: SQLite doesn't support ALTER COLUMN, so we can't make it NOT NULL
+            # The constraint is enforced at application level
         
         # Migrate old modifiers if they exist
         if old_table_exists:
@@ -290,9 +312,19 @@ class Database:
                 entities_at_risk INTEGER,
                 avg_age_years REAL,
                 avg_wealth REAL,
-                employed_count INTEGER
+                employed_count INTEGER,
+                birth_rate REAL,
+                death_rate REAL
             )
         """)
+        
+        # Add birth_rate and death_rate columns if they don't exist (migration)
+        cursor.execute("PRAGMA table_info(entity_history)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'birth_rate' not in columns:
+            cursor.execute("ALTER TABLE entity_history ADD COLUMN birth_rate REAL")
+        if 'death_rate' not in columns:
+            cursor.execute("ALTER TABLE entity_history ADD COLUMN death_rate REAL")
         
         # Create indexes for query performance
         cursor.execute("""
@@ -389,13 +421,15 @@ class Database:
                 # Update existing
                 cursor.execute("""
                     UPDATE modifiers SET
-                    modifier_name=?, resource_id=?, effect_type=?, effect_value=?, effect_direction=?,
+                    modifier_name=?, resource_id=?, target_type=?, target_id=?, effect_type=?, effect_value=?, effect_direction=?,
                     start_year=?, end_year=?, is_active=?, repeat_probability=?, repeat_frequency=?,
                     repeat_rate=?, repeat_duration_years=?, parent_modifier_id=?
                     WHERE id=?
                 """, (
                     modifier.modifier_name,
                     modifier.resource_id,
+                    modifier.target_type,
+                    modifier.target_id,
                     modifier.effect_type_str,
                     modifier.effect_value,
                     modifier.effect_direction,
@@ -413,13 +447,15 @@ class Database:
                 # Insert new (repeats created during simulation)
                 cursor.execute("""
                     INSERT INTO modifiers 
-                    (modifier_name, resource_id, effect_type, effect_value, effect_direction,
+                    (modifier_name, resource_id, target_type, target_id, effect_type, effect_value, effect_direction,
                      start_year, end_year, is_active, repeat_probability, repeat_frequency, 
                      repeat_rate, repeat_duration_years, parent_modifier_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     modifier.modifier_name,
                     modifier.resource_id,
+                    modifier.target_type,
+                    modifier.target_id,
                     modifier.effect_type_str,
                     modifier.effect_value,
                     modifier.effect_direction,
@@ -527,9 +563,19 @@ class Database:
         for row in cursor.fetchall():
             row_dict = dict(row)  # Convert Row to dict for easier access
             
+            # Support both old format (resource_id only) and new format (target_type/target_id)
+            # If target_type doesn't exist, assume it's a resource modifier (backward compatibility)
+            if 'target_type' in row_dict and row_dict.get('target_type'):
+                target_type = row_dict['target_type']
+                target_id = row_dict.get('target_id', row_dict.get('resource_id'))
+            else:
+                # Old format - resource_id only
+                target_type = 'resource'
+                target_id = row_dict.get('resource_id')
+            
             modifier = Modifier(
                 modifier_name=row_dict['modifier_name'],
-                resource_id=row_dict['resource_id'],
+                resource_id=row_dict.get('resource_id'),  # May be None for system modifiers
                 start_year=row_dict['start_year'],
                 end_year=row_dict['end_year'],
                 effect_type=row_dict['effect_type'],
@@ -539,12 +585,14 @@ class Database:
                 repeat_probability=row_dict['repeat_probability'],
                 repeat_frequency=row_dict['repeat_frequency'],
                 repeat_rate=row_dict['repeat_rate'],
+                target_type=target_type,
+                target_id=target_id,
                 repeat_duration_years=row_dict.get('repeat_duration_years'),
                 parent_modifier_id=row_dict.get('parent_modifier_id'),
                 db_id=row_dict['id']
             )
-            # Use composite ID for world_state dict
-            modifier_id = f"{row_dict['modifier_name']}_{row_dict['resource_id']}_{row_dict['id']}"
+            # Use composite ID for world_state dict (use target_id for new format)
+            modifier_id = f"{row_dict['modifier_name']}_{target_id}_{row_dict['id']}"
             
             world_state._modifiers[modifier_id] = modifier
         
@@ -686,7 +734,9 @@ class Database:
         entities_at_risk: int = 0,
         avg_age_years: Optional[float] = None,
         avg_wealth: Optional[float] = None,
-        employed_count: int = 0
+        employed_count: int = 0,
+        birth_rate: Optional[float] = None,
+        death_rate: Optional[float] = None
     ) -> None:
         """Save entity history record to database.
         
@@ -705,18 +755,20 @@ class Database:
             avg_age_years: Average age in years
             avg_wealth: Average wealth/money
             employed_count: Count of employed entities
+            birth_rate: Births per 1000 population per period
+            death_rate: Deaths per 1000 population per period
         """
         cursor = self._connection.cursor()
         cursor.execute("""
             INSERT INTO entity_history 
             (timestamp, tick, total_entities, component_counts, avg_hunger, avg_thirst, 
              avg_rest, avg_pressure_level, entities_with_pressure, avg_health, 
-             entities_at_risk, avg_age_years, avg_wealth, employed_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             entities_at_risk, avg_age_years, avg_wealth, employed_count, birth_rate, death_rate)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             timestamp, tick, total_entities, component_counts, avg_hunger, avg_thirst,
             avg_rest, avg_pressure_level, entities_with_pressure, avg_health,
-            entities_at_risk, avg_age_years, avg_wealth, employed_count
+            entities_at_risk, avg_age_years, avg_wealth, employed_count, birth_rate, death_rate
         ))
         self._connection.commit()
     

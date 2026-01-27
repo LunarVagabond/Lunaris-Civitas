@@ -53,12 +53,16 @@ def test_modifier_validation():
             effect_direction="invalid"
         )
     
-    # Missing required fields (Python raises TypeError before our validation)
-    with pytest.raises(TypeError):
+    # Missing required fields (now raises ValueError for missing start_year/end_year)
+    with pytest.raises(ValueError, match="start_year and end_year required"):
         Modifier(
             modifier_name="test",
             resource_id="water",
-            start_year=2024
+            start_year=None,
+            end_year=None,
+            effect_type="percentage",
+            effect_value=0.3,
+            effect_direction="decrease"
         )
 
 

@@ -41,9 +41,17 @@ class TestNewStructureModifier:
     
     def test_modifier_validation_new_structure(self):
         """Test validation for new structure modifiers."""
-        # Missing required fields (Python raises TypeError before our validation)
-        with pytest.raises(TypeError):
-            Modifier(modifier_name="test", resource_id="food")
+        # Missing required fields (now raises ValueError for missing start_year/end_year)
+        with pytest.raises(ValueError, match="start_year and end_year required"):
+            Modifier(
+                modifier_name="test",
+                resource_id="food",
+                start_year=None,
+                end_year=None,
+                effect_type="percentage",
+                effect_value=0.3,
+                effect_direction="decrease"
+            )
         
         # End year before start year
         with pytest.raises(ValueError, match="end_year.*must be after start_year"):
@@ -800,12 +808,12 @@ class TestModifierDatabase:
         # Insert parent modifier
         cursor.execute("""
             INSERT INTO modifiers 
-            (modifier_name, resource_id, effect_type, effect_value, effect_direction,
+            (modifier_name, resource_id, target_type, target_id, effect_type, effect_value, effect_direction,
              start_year, end_year, is_active, repeat_probability, repeat_frequency, 
              repeat_rate, repeat_duration_years, parent_modifier_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            "pest_outbreak", "food", "percentage", 0.3, "decrease",
+            "pest_outbreak", "food", "resource", "food", "percentage", 0.3, "decrease",
             2024, 2026, 1, 0.5, "yearly", 1, 2, None
         ))
         parent_id = cursor.lastrowid
@@ -813,12 +821,12 @@ class TestModifierDatabase:
         # Insert repeat modifier
         cursor.execute("""
             INSERT INTO modifiers 
-            (modifier_name, resource_id, effect_type, effect_value, effect_direction,
+            (modifier_name, resource_id, target_type, target_id, effect_type, effect_value, effect_direction,
              start_year, end_year, is_active, repeat_probability, repeat_frequency, 
              repeat_rate, repeat_duration_years, parent_modifier_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            "pest_outbreak", "food", "percentage", 0.3, "decrease",
+            "pest_outbreak", "food", "resource", "food", "percentage", 0.3, "decrease",
             2026, 2028, 1, 0.5, "yearly", 1, 2, parent_id
         ))
         

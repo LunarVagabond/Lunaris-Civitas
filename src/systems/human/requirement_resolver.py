@@ -110,14 +110,10 @@ class RequirementResolverSystem(System):
         """
         sources = self.source_definitions.get(resource_id, [])
         
+        # Fallback: If no sources configured, try direct world resource consumption
+        # This is a Phase 2 fallback - in later phases, sources should be configured
         if not sources:
-            return RequirementResolution(
-                success=False,
-                source_id=None,
-                amount_fulfilled=0.0,
-                amount_requested=amount,
-                reason=f"No sources defined for resource {resource_id}"
-            )
+            return self._fulfill_from_world_fallback(entity, resource_id, amount, world_state)
         
         for source in sources:
             # Check if source is available
@@ -351,3 +347,64 @@ class RequirementResolverSystem(System):
         inventory.add_resource(resource_id, amount)
         
         return amount
+    
+    def _fulfill_from_world_fallback(
+        self,
+        entity: Entity,
+        resource_id: str,
+        amount: float,
+        world_state: WorldState
+    ) -> RequirementResolution:
+        """Fallback: Consume directly from world resource pool.
+        
+        This is a Phase 2 fallback when no sources are configured.
+        In later phases, proper sources (inventory, market, etc.) should be configured.
+        
+        Args:
+            entity: Entity requesting fulfillment
+            resource_id: Resource identifier
+            amount: Required amount
+            world_state: World state for context
+            
+        Returns:
+            RequirementResolution with success status
+        """
+        global_resource = world_state.get_resource(resource_id)
+        if global_resource is None:
+            return RequirementResolution(
+                success=False,
+                source_id='world_fallback',
+                amount_fulfilled=0.0,
+                amount_requested=amount,
+                reason=f"Resource {resource_id} does not exist in world"
+            )
+        
+        # Try to consume the requested amount
+        if global_resource.current_amount >= amount:
+            global_resource.consume(amount)
+            return RequirementResolution(
+                success=True,
+                source_id='world_fallback',
+                amount_fulfilled=amount,
+                amount_requested=amount
+            )
+        
+        # Try to fulfill as much as possible
+        available = global_resource.current_amount
+        if available > 0:
+            global_resource.consume(available)
+            return RequirementResolution(
+                success=True,
+                source_id='world_fallback',
+                amount_fulfilled=available,
+                amount_requested=amount
+            )
+        
+        # No resource available
+        return RequirementResolution(
+            success=False,
+            source_id='world_fallback',
+            amount_fulfilled=0.0,
+            amount_requested=amount,
+            reason=f"Insufficient {resource_id} in world (available: {available}, requested: {amount})"
+        )

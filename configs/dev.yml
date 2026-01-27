@@ -67,6 +67,12 @@ systems:
   - ResourceReplenishmentSystem
   - ResourceHistorySystem
   - EntityHistorySystem
+  - HumanSpawnSystem
+  - NeedsSystem
+  - RequirementResolver
+  - HumanNeedsFulfillmentSystem
+  - HealthSystem
+  - DeathSystem
 
 systems_config:
   ResourceProductionSystem:
@@ -113,3 +119,94 @@ systems_config:
     frequency: daily  # Save history daily at midnight
     rate: 1  # Every 1 day
     component_types: []  # Empty = track all components
+  
+  HumanSpawnSystem:
+    # Human spawn system for initial population and runtime spawning
+    # NOTE: Runtime spawning is a TEMPORARY PLACEHOLDER for Phase 3 reproduction system
+    enabled: true
+    initial_population: 100
+    spawn_frequency: daily  # hourly, daily, weekly, monthly, yearly
+    spawn_rate: 10  # 0 = disabled, N = spawn N entities per period
+    seed_crew:
+      age_range: [18, 65]  # Years for initial population
+      components:
+        Needs: 100  # All get Needs (percentage)
+        Health: 100
+        Age: 100
+        Pressure: 50  # 50% get Pressure
+        Inventory: 30
+        Wealth: 20
+    runtime_spawn:
+      # Runtime births always use current simulation date (age = 0)
+      # Age component is always created automatically at age 0
+      components:
+        Needs: 100
+        Health: 100
+        Pressure: 0  # Newborns start without pressure
+  
+  NeedsSystem:
+    # Needs decay system with randomized per-entity rates (individual metabolism)
+    enabled: true
+    frequency: hourly  # Always hourly for needs decay
+    base_hunger_rate: 0.01  # Per hour, base rate
+    hunger_rate_variance: 0.005  # ±variance for randomization
+    base_thirst_rate: 0.015
+    thirst_rate_variance: 0.005
+    base_rest_rate: 0.005
+    rest_rate_variance: 0.002
+  
+  RequirementResolver:
+    # Requirement resolver system for fulfilling resource needs
+    # In Phase 2, uses fallback to consume directly from world resources
+    # In later phases, will use configured sources (inventory, market, etc.)
+    enabled: true
+    # requirement_sources: {}  # No sources configured - uses world fallback
+  
+  HumanNeedsFulfillmentSystem:
+    # Active need fulfillment through RequirementResolverSystem
+    enabled: true
+    frequency: hourly  # Check and fulfill needs hourly
+    satisfaction_ranges:
+      food:
+        hunger_restore_min: 0.05  # Per unit of food (randomized per call)
+        hunger_restore_max: 0.15
+      water:
+        thirst_restore_min: 0.10  # Per unit of water (randomized per call)
+        thirst_restore_max: 0.30
+      rest:
+        rest_restore_min: 0.05  # Per hour of rest (randomized per call)
+        rest_restore_max: 0.15
+  
+  HealthSystem:
+    # Health degradation from pressure and unmet needs
+    enabled: true
+    frequency: hourly  # Health updates hourly
+    pressure_damage:
+      min_per_tick: 0.001  # At pressure_level = 1.0 (randomized per tick)
+      max_per_tick: 0.005
+    unmet_needs_damage:
+      hunger:
+        min_per_tick: 0.0005  # At hunger = 1.0 (randomized per tick)
+        max_per_tick: 0.002
+      thirst:
+        min_per_tick: 0.001
+        max_per_tick: 0.003
+      rest:
+        min_per_tick: 0.0002
+        max_per_tick: 0.001
+    healing_rate:
+      min_per_tick: 0.0001  # When needs met (randomized per tick)
+      max_per_tick: 0.0005
+  
+  DeathSystem:
+    # Death from health degradation and age-based mortality
+    enabled: true
+    frequency: hourly  # Check for death hourly
+    age_mortality:
+      old_age_start: 70  # Years - mortality starts increasing here
+      old_age_death_chance_min: 0.00001  # Per hour at old_age_start (randomized)
+      old_age_death_chance_max: 0.0001  # Per hour at old_age_start (randomized)
+      peak_mortality_age: 85  # Age where most deaths occur (73-100 range)
+      chance_increase_per_year: 0.00001  # Base increase per year past old_age_start
+      chance_multiplier_per_year: 1.1  # Exponential multiplier after peak_mortality_age
+      # No max_age - outliers can survive past 100 (very rare)
