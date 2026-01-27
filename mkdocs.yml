@@ -73,5 +73,6 @@ nav:
       - Future Tickets: Roadmap/FUTURE_TICKETS.md
   - Development:
       - Development Guide: Development/README.md
+      - Core Execution Flows: Development/CORE_FLOWS.md
   - Operations:
       - Operations Guide: Operations/README.md

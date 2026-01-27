@@ -4,14 +4,16 @@ PYTHON := .venv/bin/python
 PIP := .venv/bin/pip
 VENV := .venv
 
-.PHONY: setup install run run-stop test docs docs-serve docs-stop clean help
+.PHONY: setup install run run-stop resume resume-stop test docs docs-serve docs-stop clean help
 
 help:
 	@echo "Available targets:"
 	@echo "  make setup    - Create virtual environment and install dependencies"
 	@echo "  make install  - Install dependencies (creates venv if needed)"
-	@echo "  make run      - Run simulation with dev config in background"
+	@echo "  make run      - Run simulation with dev config in background (starts new, overwrites logs)"
 	@echo "  make run-stop - Stop the running simulation"
+	@echo "  make resume   - Resume simulation from database (appends to logs, preserves DB)"
+	@echo "  make resume-stop - Stop the resumed simulation"
 	@echo "  make test     - Run tests"
 	@echo "  make docs     - Build documentation"
 	@echo "  make docs-serve [PORT=5001] - Serve documentation locally in background (default port: 8000)"
@@ -60,6 +62,33 @@ run: $(VENV)
 	fi
 
 run-stop:
+	@if [ ! -f _running/pids/simulation.pid ]; then \
+		echo "No simulation PID file found. Simulation may not be running."; \
+		exit 1; \
+	fi
+	@PID=$$(cat _running/pids/simulation.pid); \
+	if ps -p $$PID > /dev/null 2>&1; then \
+		kill $$PID; \
+		rm _running/pids/simulation.pid; \
+		echo "Simulation stopped (PID: $$PID)"; \
+	else \
+		echo "Process $$PID not found. Removing stale PID file."; \
+		rm _running/pids/simulation.pid; \
+	fi
+
+resume: $(VENV)
+	@mkdir -p _running/logs _running/pids
+	@if [ -f _running/pids/simulation.pid ]; then \
+		echo "Simulation is already running (PID: $$(cat _running/pids/simulation.pid))"; \
+		exit 1; \
+	fi
+	@$(PYTHON) -m src --resume >> _running/logs/simulation.log 2>&1 & \
+	echo $$! > _running/pids/simulation.pid; \
+	echo "Simulation resumed in background (PID: $$(cat _running/pids/simulation.pid))"; \
+	echo "Logs: _running/logs/simulation.log (appending)"; \
+	echo "Stop with: make resume-stop"
+
+resume-stop:
 	@if [ ! -f _running/pids/simulation.pid ]; then \
 		echo "No simulation PID file found. Simulation may not be running."; \
 		exit 1; \

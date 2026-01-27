@@ -16,9 +16,23 @@ python -m src --config path/to/config.yml
 
 ### Resume Simulation
 
+**Recommended (appends to logs, preserves database):**
+```bash
+make resume
+```
+
+**Direct command:**
 ```bash
 python -m src --resume
 ```
+
+The `make resume` command:
+- Resumes from the last saved state in the database
+- Appends to existing log file (creates if missing)
+- Preserves database and logs (doesn't clean anything)
+- Runs in background like `make run`
+
+Stop with: `make resume-stop` (or `make run-stop` - both work)
 
 ### Command Line Options
 
@@ -32,7 +46,10 @@ python -m src --resume
 
 - `make setup` - Create virtual environment and install dependencies
 - `make install` - Install dependencies (requires existing venv)
-- `make run` - Run simulation with dev config
+- `make run` - Run simulation with dev config (starts new, overwrites logs)
+- `make run-stop` - Stop the running simulation
+- `make resume` - Resume simulation from database (appends to logs, preserves DB)
+- `make resume-stop` - Stop the resumed simulation
 - `make test` - Run tests
 - `make docs` - Build documentation
 - `make docs-serve` - Serve documentation locally

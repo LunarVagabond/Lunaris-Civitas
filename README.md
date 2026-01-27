@@ -60,10 +60,17 @@ python -m src --config path/to/config.yml
 
 ### Resume Simulation
 
-Resume from the last saved state:
+**Recommended (appends to logs, preserves database):**
+```bash
+make resume
+```
+
+**Direct command:**
 ```bash
 python -m src --resume
 ```
+
+Resumes from the last saved state in the database. The `make resume` command appends to existing logs and preserves the database (unlike `make run` which starts fresh and overwrites logs).
 
 ### Limit Simulation Ticks
 

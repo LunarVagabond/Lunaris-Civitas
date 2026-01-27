@@ -49,3 +49,8 @@ Systems **never** call each other directly. All interaction happens through the 
 - Systems query active modifiers
 - Systems add/remove modifiers
 - Systems never depend on other systems
+
+## Further Reading
+
+For detailed information about execution flows, call chains, and interface patterns, see:
+- **[Core Execution Flows](../Development/CORE_FLOWS.md)** - Complete documentation of simulation loop, system patterns, and call chains

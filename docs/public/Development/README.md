@@ -21,6 +21,14 @@ make test
 - `src/engine/` - Simulation engine
 - `src/systems/` - Simulation systems (organized by category)
 
+## Key Documentation
+
+- **[Core Execution Flows](CORE_FLOWS.md)** - Essential reading for understanding:
+  - Entry point flow and simulation loop
+  - System interface patterns and extension
+  - Model/composable patterns
+  - Detailed call chains for common operations
+
 ## Development Guidelines
 
 - Follow the system contract for all systems
