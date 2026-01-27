@@ -2,29 +2,34 @@
 
 ## Current Status
 
-**Phase 1: Resources & World State** - ✅ Complete
+**Phase 2: Base Human (Minimal Survival)** - ✅ Complete
 
 The simulation engine now supports:
 - Resource management (production, consumption, replenishment)
 - Natural/baseline processes with configurable frequencies
 - Modifier system for buffs/debuffs
+- Human entities with needs, health, and survival mechanics
 - SQLite persistence
 - Config-driven initialization
+
+**Current Issue:** Food is running out quickly. Humans are dying from hunger faster than natural production can replenish resources. **Phase 3 (Job System) is critical** to enable humans to produce resources.
 
 ## Development Phases
 
 See [Development Phases](PHASES.md) for detailed phase breakdown:
 - Phase 0: Simulation Spine ✅
 - Phase 1: Resources & World State ✅
-- Phase 2: Base Human (Minimal Survival) 🔜
-- Phase 3: Time, Aging, Reproduction 🔜
-- Phase 4: Economy & Jobs 🔜
-- Phase 5: Geography & Environment 🔜
-- Phase 6: Health, Disease, Pandemics 🔜
-- Phase 7: Crime, Corruption, Policing 🔜
-- Phase 8: Politics & Power 🔜
-- Phase 9: Discord Integration 🔜
-- Phase 10: Expert Mode 🔜
+- Phase 2: Base Human (Minimal Survival) ✅
+- **Phase 3: Job System (Resource Production)** 🔜 **NEXT PRIORITY**
+- **Phase 4: Reproduction System** 🔜 **HIGH PRIORITY**
+- Phase 5: Actions System 🔜
+- Phase 6: Economy & Markets 🔜
+- Phase 7: Geography & Environment 🔜
+- Phase 8: Health, Disease, Pandemics 🔜
+- Phase 9: Crime, Corruption, Policing 🔜
+- Phase 10: Politics & Power 🔜
+- Phase 11: Discord Integration 🔜
+- Phase 12: Expert Mode 🔜
 
 ## Future Tickets
 

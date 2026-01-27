@@ -154,7 +154,7 @@ History data is stored in the `entity_history` table and can be exported to CSV 
 
 ### HumanSpawnSystem
 
-Creates initial population and supports runtime spawning (TEMPORARY PLACEHOLDER for Phase 3 reproduction system).
+Creates initial population and supports runtime spawning (TEMPORARY PLACEHOLDER for Phase 4 reproduction system).
 
 **Configuration:**
 - `enabled`: Enable/disable spawning (default: `true`)
@@ -188,7 +188,7 @@ HumanSpawnSystem:
       Age: 100  # Always age 0
 ```
 
-**Note**: Runtime spawning is a temporary placeholder and will be replaced by a proper reproduction system in Phase 3.
+**Note**: Runtime spawning is a temporary placeholder and will be replaced by a proper reproduction system in Phase 4.
 
 ### NeedsSystem
 

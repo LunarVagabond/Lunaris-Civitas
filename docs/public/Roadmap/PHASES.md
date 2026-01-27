@@ -80,7 +80,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - `Household`: household linkage
 
 **Systems:**
-- `HumanSpawnSystem`: Creates initial population and runtime spawning (TEMPORARY PLACEHOLDER for Phase 3 reproduction system)
+- `HumanSpawnSystem`: Creates initial population and runtime spawning (TEMPORARY PLACEHOLDER for Phase 4 reproduction system)
 - `NeedsSystem`: Updates needs with randomized per-entity decay rates (hourly ticks)
 - `HumanNeedsFulfillmentSystem`: Actively fulfills needs through RequirementResolverSystem (hourly ticks)
 - `HealthSystem`: Converts pressure and unmet needs into health degradation (hourly ticks)
@@ -100,13 +100,107 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - ✅ All decay and satisfaction amounts use randomized ranges
 - ✅ Age-based mortality allows rare outliers past 100
 
-**Note**: `HumanSpawnSystem` runtime spawning is a temporary placeholder and will be replaced by a proper reproduction system in Phase 3.
+**Note**: `HumanSpawnSystem` runtime spawning is a temporary placeholder and will be replaced by a proper reproduction system in Phase 4.
 
 ---
 
-## Phase 2.5: Actions System
+## Phase 3: Job System (Resource Production)
 
-**Status:** 🔜 Planned (Likely next phase)
+**Status:** 🔜 **NEXT PRIORITY** - Critical for resource sustainability
+
+**Goal:** Humans can produce resources through jobs, enabling sustainable resource generation.
+
+**Why This Is Critical:**
+- Current simulation shows food running out quickly (natural production insufficient)
+- Humans are dying from hunger faster than resources can be replenished
+- Jobs enable humans to actively contribute to resource production (farmers → food, etc.)
+
+**Deliverables:**
+
+**Components:**
+- `Employment`: job assignment, job type, production rates (already exists, needs enhancement)
+- `JobAssignment`: tracks which entities have which jobs
+
+**Systems:**
+- `JobSystem`: Job assignment and resource production (hourly/month ticks)
+  - Assigns jobs to entities (farmers, miners, etc.)
+  - Jobs produce resources based on job type
+  - Production rates scale with number of workers
+  - Jobs require time/energy (entities can't work 24/7)
+
+**Features:**
+- Job types: `farmer` (produces food), `miner` (produces raw materials), `water_worker` (produces water), etc.
+- Jobs produce resources directly into world state
+- Production rates configurable per job type
+- Employment component already exists - needs job assignment logic
+- Jobs can be assigned based on entity capabilities/needs
+- Work hours/rest cycles (can't work continuously)
+
+**Design Decisions:**
+- Jobs produce resources directly (not through money/wages yet)
+- Simple job assignment (probabilistic, based on needs/capabilities)
+- Production scales with number of workers
+- Foundation for later economy system (Phase 6)
+
+**Why This Matters:**
+- **Critical for survival**: Enables sustainable food production
+- Humans become active contributors to world resources
+- Foundation for economy (Phase 6 will add wages/markets)
+- Addresses current food scarcity crisis in simulation
+
+---
+
+## Phase 4: Reproduction System
+
+**Status:** 🔜 **HIGH PRIORITY** - Critical for population sustainability
+
+**Goal:** Proper population dynamics through realistic reproduction, replacing spawn rate placeholder.
+
+**Why This Is Critical:**
+- Current `HumanSpawnSystem` uses simple spawn rate (temporary placeholder)
+- Need proper reproduction based on fertility, relationships, age
+- Population needs to grow/decline naturally based on conditions
+
+**Deliverables:**
+
+**Components:**
+- `Fertility`: reproduction capability, age-based fertility curves
+- `Relationship`: partner/parent relationships (for reproduction)
+- `Pregnancy`: tracks pregnancy state and duration
+- `Dependency`: infant/child dependency periods
+
+**Systems:**
+- `ReproductionSystem`: Handles births based on fertility and relationships (month/year ticks)
+- `AgingSystem`: Age progression (already exists, may need enhancement)
+- `RelationshipSystem`: Manages partnerships and family structures
+
+**Features:**
+- Age-based fertility curves (peak fertility 20-35, declines with age)
+- Reproduction requires partners (relationships)
+- Pregnancy duration (9 months)
+- Birth probability based on fertility, age, health, resource availability
+- Infant dependency (requires care from parents)
+- Population growth/decline based on birth/death rates
+- Replaces `HumanSpawnSystem` runtime spawning
+
+**Design Decisions:**
+- Probabilistic reproduction (not deterministic)
+- Requires relationships/partnerships
+- Birth rates affected by resource availability (scarcity reduces birth rates)
+- Foundation for demographic modeling
+
+**Why This Matters:**
+- Replaces temporary spawn system with realistic reproduction
+- Enables proper demographic modeling
+- Population dynamics emerge from conditions
+- Foundation for inter-generational effects
+- Critical for long-term simulation sustainability
+
+---
+
+## Phase 5: Actions System
+
+**Status:** 🔜 Planned
 
 **Goal:** Entities perform time-based actions (eating, sleeping, working) that occupy them for periods of time.
 
@@ -149,70 +243,43 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ---
 
-## Phase 3: Time, Aging, Reproduction
+## Phase 6: Economy & Markets
 
 **Status:** 🔜 Planned
 
-**Goal:** Population dynamics emerge naturally.
+**Goal:** Full economic system with money, wages, and markets.
 
 **Deliverables:**
 
 **Components:**
-- `Fertility`: reproduction capability
-- `Lifespan`: age-based mortality curves
-- `Dependency`: infant/child dependency periods
+- `Employment`: Enhanced with wages (already exists, needs wage system)
+- `Wealth`: money/resources owned (already exists, needs market integration)
+- `Household`: shared inventory for families (already exists, needs enhancement)
 
 **Systems:**
-- `AgingSystem`: Age progression (year ticks)
-- `BirthSystem`: Reproduction based on fertility (year ticks)
-- `MortalitySystem`: Age-based death probabilities
-
-**Features:**
-- Lifespan curves (infant mortality, old age)
-- Fertility stats (age-based)
-- Infant dependency (requires care)
-- Population growth/decline
-
-**Why This Matters:**
-- This is where epidemiologists start caring
-- Enables demographic modeling
-- Foundation for inter-generational effects
-
----
-
-## Phase 4: Economy & Jobs
-
-**Status:** 🔜 Planned
-
-**Goal:** Money exists. Economic activity drives resource distribution.
-
-**Deliverables:**
-
-**Components:**
-- `Employment`: job assignment, wages
-- `Wealth`: money/resources owned
-- `Household`: shared inventory for families
-
-**Systems:**
-- `JobSystem`: Job assignment, wage distribution (month ticks)
 - `MarketSystem`: Basic resource trading (day/month ticks)
+- `WageSystem`: Wage distribution based on jobs (month ticks)
 - `HouseholdSystem`: Shared resources within families
 - `TransferSystem`: Inter-generational wealth transfer
 
 **Features:**
-- Jobs produce resources (farmers → food, etc.)
+- Jobs pay wages (money/resources)
+- Markets enable resource trading
 - Wages enable resource purchase
 - Households share resources
 - Basic market dynamics
+- Prices fluctuate based on supply/demand
 
 **Constraints:**
 - No corruption yet
 - No crime yet
 - Simple economic model
 
+**Note:** This builds on Phase 3 Job System, adding wages and markets to the resource production foundation.
+
 ---
 
-## Phase 5: Geography & Environment
+## Phase 7: Geography & Environment
 
 **Status:** 🔜 Planned
 
@@ -243,7 +310,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ---
 
-## Phase 6: Health, Disease, Pandemics
+## Phase 8: Health, Disease, Pandemics
 
 **Status:** 🔜 Planned
 
@@ -276,7 +343,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ---
 
-## Phase 7: Crime, Corruption, Policing
+## Phase 9: Crime, Corruption, Policing
 
 **Status:** 🔜 Planned
 
@@ -309,7 +376,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ---
 
-## Phase 8: Politics & Power
+## Phase 10: Politics & Power
 
 **Status:** 🔜 Planned
 
@@ -342,7 +409,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ---
 
-## Phase 9: Discord Integration
+## Phase 11: Discord Integration
 
 **Status:** 🔜 Planned
 
@@ -371,7 +438,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 ---
 
-## Phase 10: Expert Mode
+## Phase 12: Expert Mode
 
 **Status:** 🔜 Planned
 

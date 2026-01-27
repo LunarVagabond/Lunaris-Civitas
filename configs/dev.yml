@@ -67,6 +67,7 @@ systems:
   - ResourceReplenishmentSystem
   - ResourceHistorySystem
   - EntityHistorySystem
+  - WorldHealthSystem
   - HumanSpawnSystem
   - NeedsSystem
   - RequirementResolver
@@ -119,6 +120,21 @@ systems_config:
     frequency: daily  # Save history daily at midnight
     rate: 1  # Every 1 day
     component_types: []  # Empty = track all components
+  
+  WorldHealthSystem:
+    # World health tracking - composite score from entities, resources, population, needs
+    # frequency: 'hourly', 'daily', 'weekly', 'monthly', or 'yearly'
+    # rate: Calculate every N periods
+    # weights: Component weights for composite score (should sum to ~1.0)
+    enabled: true
+    frequency: daily  # Calculate health daily at midnight
+    rate: 1  # Every 1 day
+    max_history: 10  # Keep last N health values for trend calculation
+    weights:
+      entity_health: 0.4      # Average entity health (40%)
+      resource_health: 0.3    # Resource status levels (30%)
+      population_trend: 0.2    # Population growth/decline (20%)
+      needs_fulfillment: 0.1  # Needs fulfillment rates (10%)
   
   HumanSpawnSystem:
     # Human spawn system for initial population and runtime spawning

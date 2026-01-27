@@ -14,6 +14,7 @@ from src.models.modifier import Modifier
 from src.models.entity import Entity
 from src.models.component import Component
 from src.core.system import System
+from src.systems.generics.status import StatusLevel
 
 
 class WorldState:

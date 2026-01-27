@@ -1,101 +1,159 @@
-# Lunaris Civitas
+# 🌙 Lunaris Civitas
 
-A deterministic, modular zero-player simulation engine written in Python.
+> A deterministic, modular zero-player simulation engine that models human societies, resources, and emergent behaviors. Built for both **interactive exploration** and **serious research**.
 
-## Overview
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Lunaris Civitas is a background simulation kernel designed for:
-- Analytics
-- Research
-- Long-running scenario modeling
-- Future human and societal simulations
+## 🎯 What is This?
 
-This is **not** a game UI - it's a deterministic simulation engine focused on analytical reporting and research.
+Lunaris Civitas is a **background simulation kernel** that models human societies, resource management, and complex emergent behaviors. Think of it as a "digital petri dish" where you can:
 
-## Key Features
+- 🧪 **Run research simulations** - Deterministic, reproducible experiments for academics and researchers
+- 🎮 **Watch societies evolve** - Observe how populations, resources, and systems interact over time
+- 🤖 **Future Discord integration** - Eventually, humans will be able to interact with the simulation in real-time through Discord! *(Coming in Phase 11)*
 
-- **Deterministic**: Fully replayable with seeded RNG
-- **Modular**: Systems interact only through world state
-- **Extensible**: Add new systems without changing the engine
-- **Persistent**: SQLite-based state management with resume capability
-- **Data-driven**: All behavior driven by configuration
+This is **not a game UI** - it's a simulation engine that runs in the background, producing data, analytics, and (eventually) real-time updates.
 
-## Installation
+## ✨ Key Features
 
-1. Clone the repository:
+- 🔄 **Deterministic**: Fully replayable with seeded RNG - same seed = same results
+- 🧩 **Modular**: Systems interact only through world state - no direct dependencies
+- 🔌 **Extensible**: Add new systems without changing the engine core
+- 💾 **Persistent**: SQLite-based state management with save/resume capability
+- ⚙️ **Data-driven**: All behavior driven by configuration files
+- 📊 **Analytics-first**: Built-in history tracking and CSV export for analysis
+
+## 🚀 Quick Start
+
 ```bash
-git clone <repository-url>
+# Clone the repository
+git clone https://github.com/LunarVagabond/lunaris-civitas.git
 cd lunaris-civitas
-```
 
-2. Set up the virtual environment and install dependencies:
-```bash
+# Setup (creates virtual environment and installs dependencies)
 make setup
-```
 
-This will:
-- Create a `.venv` virtual environment
-- Install all required dependencies from `requirements.txt`
-
-3. Activate the virtual environment (optional, Makefile handles this automatically):
-```bash
-source .venv/bin/activate
-```
-
-## Running the Simulation
-
-### Basic Run
-
-Run the simulation with the default development configuration:
-```bash
+# Run simulation
 make run
-```
 
-### Custom Configuration
-
-Run with a custom configuration file:
-```bash
-python -m src --config path/to/config.yml
-```
-
-### Resume Simulation
-
-**Recommended (appends to logs, preserves database):**
-```bash
+# Or resume from last saved state
 make resume
 ```
 
-**Direct command:**
+## 📖 What's Currently Implemented?
+
+### ✅ Phase 0-2: Foundation & Basic Humans (Complete)
+
+- **Resource Management**: Production, consumption, and replenishment systems
+- **Human Entities**: Needs (hunger, thirst, rest), health, aging, and survival mechanics
+- **Analytics**: Resource and entity history tracking with CSV export
+- **Persistence**: SQLite database with save/resume capability
+- **Modifier System**: Buffs/debuffs that affect resource production/consumption
+
+### 🔜 Coming Next (Phase 3-4)
+
+- **🌾 Job System** (Phase 3) - Humans can produce resources through jobs (farmers → food, etc.)
+- **👶 Reproduction System** (Phase 4) - Proper population dynamics based on fertility and relationships
+
+*See the [Roadmap](docs/public/Roadmap/PHASES.md) for the full development plan!*
+
+## 🎮 Future: Discord Integration
+
+One of our long-term goals is to integrate with **Discord** so humans can:
+
+- 👀 **Watch the simulation** in real-time
+- 📊 **Query statistics** about the world state
+- 🎲 **Influence events** probabilistically (never full control - keeps it scientific!)
+- 👤 **Be born** into the simulation (probabilistic)
+- 📈 **Track specific humans** and their life stories
+
+This will make the simulation **observable and interactive** while maintaining scientific integrity. The simulation will continue running in the background, and Discord will provide a window into what's happening.
+
+*This is planned for Phase 11 - see the [Roadmap](docs/public/Roadmap/PHASES.md) for details.*
+
+## 🔬 Research Use Cases
+
+Lunaris Civitas is designed to be useful for:
+
+- **Epidemiologists**: Model disease spread, pandemics, and public health interventions
+- **Economists**: Study resource distribution, markets, and economic systems
+- **Political Scientists**: Explore policy effects, governance, and social dynamics
+- **Sociologists**: Understand population dynamics, relationships, and social structures
+- **Urban Planners**: Model city growth, resource allocation, and infrastructure needs
+
+The deterministic nature and data export capabilities make it perfect for:
+- Batch runs with different parameters
+- Statistical analysis and comparison
+- Reproducible experiments
+- Academic research
+
+## 📚 Documentation
+
+Full documentation is available in the `docs/` directory and can be built with MkDocs:
+
 ```bash
-python -m src --resume
+# Build documentation
+make docs
+
+# Serve documentation locally
+make docs-serve
 ```
 
-Resumes from the last saved state in the database. The `make resume` command appends to existing logs and preserves the database (unlike `make run` which starts fresh and overwrites logs).
+**Quick Links:**
+- 📘 [Getting Started](docs/public/Overview/getting-started.md)
+- 🏗️ [Architecture](docs/public/Architecture/README.md)
+- ⚙️ [Systems](docs/public/Systems/README.md)
+- ⚙️ [Configuration](docs/public/Configuration/README.md)
+- 🗺️ [Roadmap](docs/public/Roadmap/PHASES.md) - See what's coming next!
+- 🛠️ [Development Guide](docs/public/Development/README.md)
+- 📊 [Operations](docs/public/Operations/README.md)
 
-### Limit Simulation Ticks
+## 🏗️ Project Structure
 
-Run for a limited number of ticks:
-```bash
-python -m src --config configs/dev.yml --max-ticks 100
+```
+lunaris-civitas/
+├── src/                    # Source code
+│   ├── core/              # Core engine (time, world state, systems)
+│   ├── models/            # Data models (Resource, Modifier, Entity, Component)
+│   ├── persistence/       # SQLite database layer
+│   ├── config/            # Configuration loading
+│   ├── engine/            # Simulation engine and tick loop
+│   └── systems/           # Simulation systems
+│       ├── resource/      # Resource management
+│       ├── human/         # Human entity systems
+│       └── analytics/     # History and analytics
+├── configs/               # Configuration files
+├── docs/                  # Documentation (MkDocs)
+├── tests/                 # Unit and integration tests
+├── _running/              # Runtime files (database, logs, exports)
+├── Makefile              # Build and run commands
+└── requirements.txt      # Python dependencies
 ```
 
-### Export Resource History
+## 🧪 Running the Simulation
 
-Export resource history to CSV for analysis:
+### Basic Commands
+
 ```bash
+# Run with default config
+make run
+
+# Resume from last saved state (recommended for long runs)
+make resume
+
+# Run with custom config
+python -m src --config path/to/config.yml
+
+# Limit number of ticks
+python -m src --max-ticks 100
+
+# Export resource history to CSV
 make export-resources
-```
 
-This exports all resource history to `_running/exports/resources_YYYYMMDD_HHMMSS.csv`. See [Operations documentation](docs/public/Operations/README.md#exporting-data) for advanced options.
-
-### Export Entity History
-
-Export entity history to CSV for analysis:
-```bash
+# Export entity history to CSV
 make export-entities
 ```
-
-This exports all entity history to `_running/exports/entities_YYYYMMDD_HHMMSS.csv`. See [Operations documentation](docs/public/Operations/README.md#export-entity-history) for advanced options.
 
 ### Command Line Options
 
@@ -105,31 +163,9 @@ This exports all entity history to `_running/exports/entities_YYYYMMDD_HHMMSS.cs
 - `--max-ticks N`: Maximum number of ticks to run
 - `--log-level LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
 
-## Project Structure
+## 🧩 Adding a New System
 
-```
-lunaris-civitas/
-├── src/                    # Source code
-│   ├── core/              # Core engine components
-│   ├── models/            # Data models (Resource, Modifier)
-│   ├── persistence/       # SQLite database layer
-│   ├── config/            # Configuration loading
-│   ├── engine/            # Simulation engine and loop
-│   └── systems/           # Simulation systems
-│       └── resource/      # Resource management systems
-├── configs/               # Configuration files
-├── docs/                  # Documentation (MkDocs)
-├── tests/                 # Unit and integration tests
-├── _running/              # Runtime files (database, logs)
-├── Makefile              # Build and run commands
-└── requirements.txt      # Python dependencies
-```
-
-## Adding a New System
-
-Systems are organized by category in subfolders. To add a new system:
-
-1. **Create your system class** extending the `System` base class:
+Systems are the building blocks of the simulation. Each system operates independently and interacts only through the world state. Here's how to add one:
 
 ```python
 # src/systems/my_category/my_system.py
@@ -142,33 +178,18 @@ class MySystem(System):
         return "MySystem"
     
     def init(self, world_state, config):
-        # Initialize system with configuration
-        self.my_config = config.get('my_setting', 'default')
+        # Initialize with configuration
+        self.my_setting = config.get('my_setting', 'default')
     
     def on_tick(self, world_state, current_datetime):
-        # Process each tick
-        # Systems decide internally when to act (hourly, daily, etc.)
+        # Process each tick (systems decide internally when to act)
         if current_datetime.hour == 0:  # Act daily at midnight
-            # Do something
             resource = world_state.get_resource('food')
             if resource:
                 resource.add(10.0)
-    
-    def shutdown(self, world_state):
-        # Optional cleanup
-        pass
 ```
 
-2. **Register the system** in your simulation code:
-
-```python
-from src.systems.my_category.my_system import MySystem
-
-sim = Simulation(config_path=Path("configs/dev.yml"))
-sim.register_system(MySystem())
-```
-
-3. **Add system configuration** to your config file:
+Then register it in your config:
 
 ```yaml
 systems:
@@ -179,58 +200,69 @@ systems_config:
     my_setting: "value"
 ```
 
-## Configuration
+See [Adding Systems](docs/public/Systems/ADDING_SYSTEMS.md) for detailed instructions!
 
-See `configs/dev.yml` for an example configuration file. Configuration files can be YAML (`.yml`, `.yaml`) or JSON (`.json`).
+## 🎯 Design Principles
 
-Key sections:
-- `simulation`: Simulation settings (start datetime, RNG seed, log level)
-- `resources`: Resource definitions
-- `systems`: List of system IDs to register
-- `systems_config`: System-specific configuration
+1. **No system talks directly to another system** - All interaction via world state
+2. **Everything is config + stats** - Data-driven behavior
+3. **Humans never "decide"** - Systems decide probabilistically
+4. **Every feature must be disable-able** - Modular and optional
+5. **If it can't be graphed, it's not real** - Analytics-first design
+6. **Complexity is allowed only when isolated** - Systems are independent
 
-## Testing
+## ⏰ Time Model
 
-Run tests:
+- **1 tick = 1 hour** of simulation time
+- Systems receive hourly ticks and decide internally when to act
+- Calendar-aware: Correct month lengths, leap years, etc.
+- Systems can act hourly, daily, monthly, or yearly based on their needs
+
+## 🧪 Testing
+
 ```bash
+# Run all tests
 make test
+
+# Run specific test file
+python -m pytest tests/path/to/test_file.py
 ```
 
-## Documentation
+## 🤝 Contributing
 
-Build documentation:
-```bash
-make docs
-```
+Contributions are welcome! This is a public repository and we're happy to have contributors.
 
-Serve documentation locally:
-```bash
-make docs-serve
-```
+When contributing:
+- Follow the phase plan (see [Roadmap](docs/public/Roadmap/PHASES.md))
+- Maintain determinism (same seed = same results)
+- Keep systems independent
+- Make everything configurable
+- Update documentation
+- Add tests
 
-Documentation is built using MkDocs with the Material theme.
-
-## Design Principles
-
-- **Deterministic and replayable**: Same seed produces same results
-- **Modular and extensible**: Systems don't depend on each other
-- **Data-driven**: All behavior driven by configuration
-- **System contract**: Every system follows the same interface
-- **Hot-addable**: New systems can be added without engine changes
-
-## Time Model
-
-- 1 tick = 1 hour
-- 24 hours = 1 day
-- Days follow real-world calendar rules (correct month lengths, leap years)
-- 12 months = 1 year
-
-All systems receive hourly ticks and decide internally whether to act hourly, daily, monthly, or yearly.
-
-## License
+## 📄 License
 
 [Add your license here]
 
-## Contributing
+## 🌟 Roadmap
 
-[Add contribution guidelines here]
+We're actively developing! Current priorities:
+
+1. **🌾 Job System** (Phase 3) - Enable humans to produce resources
+2. **👶 Reproduction System** (Phase 4) - Proper population dynamics
+3. **🎮 Actions System** (Phase 5) - Time-based entity actions
+4. **💰 Economy & Markets** (Phase 6) - Full economic system
+5. **🌍 Geography** (Phase 7) - Spatial resource distribution
+6. **🦠 Disease & Pandemics** (Phase 8) - Public health modeling
+7. **⚖️ Crime & Policing** (Phase 9) - Social systems
+8. **🏛️ Politics & Power** (Phase 10) - Governance and policy
+9. **💬 Discord Integration** (Phase 11) - Real-time observability and interaction
+10. **🔬 Expert Mode** (Phase 12) - Research tools and batch runs
+
+See the [full roadmap](docs/public/Roadmap/PHASES.md) for detailed information!
+
+---
+
+**Built with ❤️ for simulation enthusiasts, researchers, and curious minds.**
+
+*Want to watch a society evolve? Want to run experiments? Want to eventually interact with it through Discord? You're in the right place!* 🚀

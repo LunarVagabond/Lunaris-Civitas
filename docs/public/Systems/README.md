@@ -163,9 +163,9 @@ History data can be exported to CSV using the `make export-entities` command or 
 
 ### HumanSpawnSystem
 
-Creates initial population and supports runtime spawning (TEMPORARY PLACEHOLDER for Phase 3 reproduction system).
+Creates initial population and supports runtime spawning (TEMPORARY PLACEHOLDER for Phase 4 reproduction system).
 
-**NOTE**: Runtime spawning is a temporary placeholder. This system will be replaced by a proper reproduction system in Phase 3 that handles births based on fertility, relationships, and other factors.
+**NOTE**: Runtime spawning is a temporary placeholder. This system will be replaced by a proper reproduction system in Phase 4 that handles births based on fertility, relationships, and other factors.
 
 **Features:**
 - Creates initial "seed crew" with randomized ages

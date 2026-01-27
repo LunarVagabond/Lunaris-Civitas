@@ -723,10 +723,13 @@ class Simulation:
         birth_rate_str = "N/A"
         death_rate_str = "N/A"
         
-        if self.last_population is not None and self.last_world_state_log:
-            # Calculate period length in days
-            period_days = (current_datetime - self.last_world_state_log).days
-            if period_days > 0:
+        if self.last_population is not None and self.last_world_state_log is not None:
+            # Calculate period length in days (use total_seconds for fractional days)
+            period_timedelta = current_datetime - self.last_world_state_log
+            period_days = period_timedelta.total_seconds() / 86400.0  # Convert to fractional days
+            
+            # Require at least 1 hour (0.0417 days) to calculate rates
+            if period_days >= (1.0 / 24.0):
                 # Average population during period
                 avg_population = (self.last_population + total_population) / 2.0
                 if avg_population > 0:
@@ -769,6 +772,21 @@ class Simulation:
             for rate in resource_rates:
                 logger.info(f"    {rate}")
         logger.info(f"  Modifiers: {modifier_count}")
+        
+        # World Health Status
+        world_health = getattr(self.world_state, '_world_health', None)
+        if world_health:
+            health_score = world_health['score']
+            trend = world_health['trend']
+            trend_arrow = "↑" if trend == "improving" else "↓" if trend == "declining" else "→"
+            logger.info("")
+            logger.info(f"  World Health: {health_score:.3f} {trend_arrow} ({trend})")
+            components = world_health.get('components', {})
+            logger.info(f"    Entities: {components.get('entity_health', 0):.3f}")
+            logger.info(f"    Resources: {components.get('resource_health', 0):.3f}")
+            logger.info(f"    Population Trend: {components.get('population_trend', 0):.3f}")
+            logger.info(f"    Needs Fulfillment: {components.get('needs_fulfillment', 0):.3f}")
+        
         logger.info("=" * 80)
         logger.info("")
         

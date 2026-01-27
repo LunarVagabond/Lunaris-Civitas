@@ -10,6 +10,7 @@ from src.systems.resource.consumption import ResourceConsumptionSystem
 from src.systems.resource.replenishment import ResourceReplenishmentSystem
 from src.systems.analytics.history import ResourceHistorySystem
 from src.systems.analytics.entity_history import EntityHistorySystem
+from src.systems.analytics.world_health import WorldHealthSystem
 from src.systems.human.spawn import HumanSpawnSystem
 from src.systems.human.needs import NeedsSystem
 from src.systems.human.requirement_resolver import RequirementResolverSystem
@@ -69,6 +70,7 @@ def main():
     sim.register_system(ResourceReplenishmentSystem())
     sim.register_system(ResourceHistorySystem())
     sim.register_system(EntityHistorySystem())
+    sim.register_system(WorldHealthSystem())
     sim.register_system(HumanSpawnSystem())
     sim.register_system(NeedsSystem())
     sim.register_system(RequirementResolverSystem())
