@@ -11,6 +11,8 @@ from typing import Dict, List, Optional, Any
 from src.core.time import SimulationTime
 from src.models.resource import Resource
 from src.models.modifier import Modifier
+from src.models.entity import Entity
+from src.models.component import Component
 from src.core.system import System
 
 
@@ -24,6 +26,7 @@ class WorldState:
     - Registered systems
     - Global resources
     - Active and scheduled modifiers
+    - Entities (with components)
     """
     
     def __init__(
@@ -58,6 +61,9 @@ class WorldState:
         
         # Modifiers: modifier_id -> Modifier instance
         self._modifiers: Dict[str, Modifier] = {}
+        
+        # Entities: entity_id -> Entity instance
+        self._entities: Dict[str, Entity] = {}
     
     def register_system(self, system: System) -> None:
         """Register a system with the world state.
@@ -251,6 +257,97 @@ class WorldState:
         
         return expired_ids
     
+    # Entity management methods
+    
+    def create_entity(self, entity_id: Optional[str] = None) -> Entity:
+        """Create a new entity and register it with the world state.
+        
+        Args:
+            entity_id: Optional unique identifier. If None, generates a UUID.
+            
+        Returns:
+            Created Entity instance
+            
+        Raises:
+            ValueError: If entity_id already exists
+        """
+        entity = Entity(entity_id=entity_id)
+        if entity.entity_id in self._entities:
+            raise ValueError(f"Entity {entity.entity_id} already exists")
+        self._entities[entity.entity_id] = entity
+        return entity
+    
+    def add_entity(self, entity: Entity) -> None:
+        """Add an entity to the world state.
+        
+        Args:
+            entity: Entity instance to add
+            
+        Raises:
+            ValueError: If entity ID already exists
+        """
+        if entity.entity_id in self._entities:
+            raise ValueError(f"Entity {entity.entity_id} already exists")
+        self._entities[entity.entity_id] = entity
+    
+    def get_entity(self, entity_id: str) -> Optional[Entity]:
+        """Get an entity by ID.
+        
+        Args:
+            entity_id: Entity identifier
+            
+        Returns:
+            Entity instance or None if not found
+        """
+        return self._entities.get(entity_id)
+    
+    def remove_entity(self, entity_id: str) -> Optional[Entity]:
+        """Remove an entity from the world state.
+        
+        Args:
+            entity_id: Entity identifier
+            
+        Returns:
+            Removed Entity instance or None if not found
+        """
+        return self._entities.pop(entity_id, None)
+    
+    def get_all_entities(self) -> Dict[str, Entity]:
+        """Get all entities.
+        
+        Returns:
+            Dictionary of entity_id -> Entity
+        """
+        return self._entities.copy()
+    
+    def query_entities_by_component(self, component_type: str) -> List[Entity]:
+        """Query entities that have a specific component type.
+        
+        Args:
+            component_type: Component type to search for
+            
+        Returns:
+            List of entities that have the component
+        """
+        return [
+            entity for entity in self._entities.values()
+            if entity.has_component(component_type)
+        ]
+    
+    def query_entities_by_components(self, component_types: List[str]) -> List[Entity]:
+        """Query entities that have all of the specified component types.
+        
+        Args:
+            component_types: List of component types to search for
+            
+        Returns:
+            List of entities that have all the specified components
+        """
+        return [
+            entity for entity in self._entities.values()
+            if all(entity.has_component(comp_type) for comp_type in component_types)
+        ]
+    
     def to_dict(self) -> Dict[str, Any]:
         """Serialize world state to dictionary.
         
@@ -263,6 +360,7 @@ class WorldState:
             'config_snapshot': self.config_snapshot,
             'resources': {rid: res.to_dict() for rid, res in self._resources.items()},
             'modifiers': {mid: mod.to_dict() for mid, mod in self._modifiers.items()},
+            'entities': {eid: entity.to_dict() for eid, entity in self._entities.items()},
             'systems': list(self._systems.keys())  # Only store IDs, not instances
         }
     
@@ -298,6 +396,11 @@ class WorldState:
         for mod_data in data['modifiers'].values():
             modifier = Modifier.from_dict(mod_data)
             world_state._modifiers[modifier.id] = modifier
+        
+        # Restore entities
+        for entity_data in data.get('entities', {}).values():
+            entity = Entity.from_dict(entity_data)
+            world_state._entities[entity.entity_id] = entity
         
         # Restore systems (if registry provided)
         if systems_registry:

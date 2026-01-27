@@ -26,6 +26,97 @@ Contains:
 - Registered systems
 - Global resources
 - Active modifiers
+- Entities (with components)
+
+## Entity Component System (ECS)
+
+Lunaris Civitas uses a lightweight Entity Component System architecture for managing entities and their behaviors.
+
+### ECS Component Hierarchy
+
+```mermaid
+graph TB
+    Component[Component Base Class]
+    Needs[NeedsComponent]
+    Inventory[InventoryComponent]
+    Pressure[PressureComponent]
+    Health[HealthComponent]
+    Age[AgeComponent]
+    Wealth[WealthComponent]
+    Employment[EmploymentComponent]
+    Household[HouseholdComponent]
+    
+    Component --> Needs
+    Component --> Inventory
+    Component --> Pressure
+    Component --> Health
+    Component --> Age
+    Component --> Wealth
+    Component --> Employment
+    Component --> Household
+```
+
+### Entity-Component Relationship
+
+```mermaid
+graph LR
+    Entity[Entity]
+    Component1[Component 1]
+    Component2[Component 2]
+    ComponentN[Component N]
+    WorldState[WorldState]
+    
+    Entity -->|has| Component1
+    Entity -->|has| Component2
+    Entity -->|has| ComponentN
+    WorldState -->|stores| Entity
+```
+
+### Requirement Resolution Architecture
+
+Entities have needs that create resource requirements. These requirements can be fulfilled through multiple sources, each with different conditions and requirements:
+
+```mermaid
+graph TD
+    Needs[NeedsComponent]
+    ReqResolver[RequirementResolverSystem]
+    Source1[Source: Inventory]
+    Source2[Source: Household]
+    Source3[Source: Market]
+    Source4[Source: Production]
+    Pressure[PressureComponent]
+    
+    Needs -->|generates requirements| ReqResolver
+    ReqResolver -->|tries priority 1| Source1
+    ReqResolver -->|tries priority 2| Source2
+    ReqResolver -->|tries priority 3| Source3
+    ReqResolver -->|tries priority 4| Source4
+    ReqResolver -->|if all fail| Pressure
+```
+
+### System Interaction Flow
+
+```mermaid
+sequenceDiagram
+    participant HS as HumanSystem
+    participant NC as NeedsComponent
+    participant RR as RequirementResolver
+    participant S1 as Source1: Inventory
+    participant S2 as Source2: Market
+    participant PC as PressureComponent
+    
+    HS->>NC: get_resource_requirements()
+    NC-->>HS: {"food": 10.0}
+    HS->>RR: resolve_requirement(food, 10.0)
+    RR->>S1: try_source()
+    S1-->>RR: failed (no inventory)
+    RR->>S2: try_source()
+    S2-->>RR: success (purchased)
+    RR-->>HS: fulfilled: 10.0
+    alt All sources fail
+        RR->>PC: add_pressure(food, 10.0)
+    end
+```
 
 ### System Contract
 

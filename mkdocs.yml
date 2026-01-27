@@ -41,7 +41,11 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
       combine_header_slug: true
@@ -52,6 +56,7 @@ markdown_extensions:
   - tables
   - admonition
   - pymdownx.details
+  - pymdownx.snippets
 
 docs_dir: docs/public
 

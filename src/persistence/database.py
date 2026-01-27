@@ -10,6 +10,7 @@ from src.core.world_state import WorldState
 from src.core.time import SimulationTime
 from src.models.resource import Resource
 from src.models.modifier import Modifier
+from src.models.entity import Entity
 from src.core.system import System
 from src.systems.generics.status import StatusLevel, get_all_status_levels, calculate_resource_status
 from src.systems.generics.effect_type import EffectType, get_all_effect_types
@@ -272,6 +273,39 @@ class Database:
             ON resource_history(resource_id)
         """)
         
+        # Entities table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS entities (
+                entity_id TEXT PRIMARY KEY
+            )
+        """)
+        
+        # Components table (one row per component)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS components (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_id TEXT NOT NULL,
+                component_type TEXT NOT NULL,
+                component_data TEXT NOT NULL,
+                FOREIGN KEY (entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE,
+                UNIQUE(entity_id, component_type)
+            )
+        """)
+        
+        # Create indexes for query performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_components_entity_id 
+            ON components(entity_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_components_component_type 
+            ON components(component_type)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_components_entity_type 
+            ON components(entity_id, component_type)
+        """)
+        
         self._connection.commit()
     
     def save_world_state(self, world_state: WorldState) -> None:
@@ -378,6 +412,24 @@ class Database:
                 VALUES (?, 1)
             """, (system_id,))
         
+        # Save entities and components
+        cursor.execute("DELETE FROM components")
+        cursor.execute("DELETE FROM entities")
+        for entity in world_state._entities.values():
+            # Save entity
+            cursor.execute("""
+                INSERT INTO entities (entity_id)
+                VALUES (?)
+            """, (entity.entity_id,))
+            
+            # Save components
+            for comp_type, component in entity.get_all_components().items():
+                component_data = json.dumps(component.to_dict())
+                cursor.execute("""
+                    INSERT INTO components (entity_id, component_type, component_data)
+                    VALUES (?, ?, ?)
+                """, (entity.entity_id, comp_type, component_data))
+        
         self._connection.commit()
     
     def load_world_state(
@@ -464,6 +516,34 @@ class Database:
             modifier_id = f"{row_dict['modifier_name']}_{row_dict['resource_id']}_{row_dict['id']}"
             
             world_state._modifiers[modifier_id] = modifier
+        
+        # Load entities and components
+        cursor.execute("SELECT entity_id FROM entities")
+        entity_ids = {row['entity_id'] for row in cursor.fetchall()}
+        
+        for entity_id in entity_ids:
+            entity = Entity(entity_id=entity_id)
+            
+            # Load components for this entity
+            cursor.execute("""
+                SELECT component_type, component_data 
+                FROM components 
+                WHERE entity_id = ?
+            """, (entity_id,))
+            
+            for row in cursor.fetchall():
+                comp_type = row['component_type']
+                comp_data = json.loads(row['component_data'])
+                
+                # Create component from data
+                from src.models.component import Component
+                component = Component.create_component(comp_type, comp_data)
+                if component is None:
+                    # Skip unknown component types (for backward compatibility)
+                    continue
+                entity._components[comp_type] = component
+            
+            world_state._entities[entity_id] = entity
         
         # Load systems (if registry provided)
         if systems_registry:

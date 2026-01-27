@@ -636,6 +636,129 @@ Simulation.run() with resume=True
 
 ---
 
+## Entity Component System Flows
+
+### Requirement Resolution Flow
+
+The requirement resolution system allows entities to fulfill needs through multiple sources:
+
+```mermaid
+flowchart TD
+    Start([HumanSystem.on_tick])
+    GetNeeds[Get NeedsComponent]
+    CalcReqs[Calculate Resource Requirements]
+    ForEachReq{For each requirement}
+    Resolve[RequirementResolver.resolve_requirement]
+    TrySource1[Try Source 1: Inventory]
+    CheckInv1{Has Inventory component?}
+    CheckInv2{Has enough resource?}
+    TrySource2[Try Source 2: Household]
+    CheckHouse1{Has Household component?}
+    CheckHouse2{Household has resource?}
+    TrySource3[Try Source 3: Market]
+    CheckWealth1{Has Wealth component?}
+    CheckWealth2{Has enough money?}
+    TrySource4[Try Source 4: Production]
+    CheckEmp1{Has Employment component?}
+    CheckEmp2{Can produce?}
+    Success[Fulfill Requirement]
+    AddPressure[Add Pressure to PressureComponent]
+    NextReq{More requirements?}
+    End([End])
+    
+    Start --> GetNeeds
+    GetNeeds --> CalcReqs
+    CalcReqs --> ForEachReq
+    ForEachReq -->|yes| Resolve
+    Resolve --> TrySource1
+    TrySource1 --> CheckInv1
+    CheckInv1 -->|no| TrySource2
+    CheckInv1 -->|yes| CheckInv2
+    CheckInv2 -->|no| TrySource2
+    CheckInv2 -->|yes| Success
+    TrySource2 --> CheckHouse1
+    CheckHouse1 -->|no| TrySource3
+    CheckHouse1 -->|yes| CheckHouse2
+    CheckHouse2 -->|no| TrySource3
+    CheckHouse2 -->|yes| Success
+    TrySource3 --> CheckWealth1
+    CheckWealth1 -->|no| TrySource4
+    CheckWealth1 -->|yes| CheckWealth2
+    CheckWealth2 -->|no| TrySource4
+    CheckWealth2 -->|yes| Success
+    TrySource4 --> CheckEmp1
+    CheckEmp1 -->|no| AddPressure
+    CheckEmp1 -->|yes| CheckEmp2
+    CheckEmp2 -->|no| AddPressure
+    CheckEmp2 -->|yes| Success
+    Success --> NextReq
+    AddPressure --> NextReq
+    NextReq -->|yes| Resolve
+    NextReq -->|no| End
+```
+
+### Component Lifecycle
+
+Components go through a lifecycle from creation to removal:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created: Entity created
+    Created --> Initialized: Component.init()
+    Initialized --> Active: Component attached to Entity
+    Active --> Updated: Component.on_tick()
+    Updated --> Active: Tick complete
+    Active --> Serialized: Entity.save()
+    Serialized --> Deserialized: Entity.load()
+    Deserialized --> Active: Component restored
+    Active --> Removed: Component removed
+    Removed --> [*]
+```
+
+### Entity Creation and Component Attachment
+
+```mermaid
+sequenceDiagram
+    participant WS as WorldState
+    participant E as Entity
+    participant C as Component
+    participant DB as Database
+    
+    WS->>E: create_entity()
+    E->>E: Generate entity_id
+    WS->>WS: Register entity
+    WS->>E: add_component(component)
+    E->>C: Component.init(world_state, config)
+    C-->>E: Initialized
+    E->>WS: Store component
+    WS->>DB: save_entity(entity)
+    DB-->>WS: Saved
+```
+
+### Pressure Accumulation Flow
+
+When requirements cannot be fulfilled, pressure accumulates:
+
+```mermaid
+flowchart LR
+    ReqFailed[Requirement Failed]
+    CalcUnmet[Calculate Unmet Amount]
+    GetPressure[Get/Create PressureComponent]
+    AddPressure[Add Pressure]
+    UpdateLevel[Update Pressure Level]
+    HealthCheck[HealthSystem Checks Pressure]
+    HealthImpact[Apply Health Impact]
+    
+    ReqFailed --> CalcUnmet
+    CalcUnmet --> GetPressure
+    GetPressure --> AddPressure
+    AddPressure --> UpdateLevel
+    UpdateLevel --> HealthCheck
+    HealthCheck --> HealthImpact
+```
+
+---
+
 ## Summary
 
 ### Key Takeaways
