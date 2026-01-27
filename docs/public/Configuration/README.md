@@ -24,6 +24,7 @@ systems:
   - ResourceProductionSystem
   - ResourceConsumptionSystem
   - ResourceReplenishmentSystem
+  - ResourceHistorySystem
 
 systems_config:
   ResourceProductionSystem:
@@ -35,6 +36,12 @@ systems_config:
     consumption:
       food: 80.0
       water: 120.0
+  
+  ResourceHistorySystem:
+    enabled: true
+    frequency: daily  # 'hourly', 'daily', 'weekly', 'monthly', or 'yearly'
+    rate: 1  # Save every N periods
+    resources: []  # Empty = track all resources, or list specific IDs
 ```
 
 ## Simulation Configuration
@@ -89,3 +96,23 @@ List of system IDs to register. Systems must be registered with the simulation b
 ## System Configuration
 
 System-specific configuration under `systems_config`. Each system defines its own config structure.
+
+### ResourceHistorySystem
+
+Tracks resource values over time for analytics. Configuration:
+
+- `enabled`: Enable/disable history tracking (default: `true`)
+- `frequency`: Save frequency - `'hourly'`, `'daily'`, `'weekly'`, `'monthly'`, or `'yearly'` (default: `'daily'`)
+- `rate`: Save every N periods (e.g., `rate: 2` with `frequency: daily` = save every 2 days) (default: `1`)
+- `resources`: List of resource IDs to track (empty list = track all resources) (default: `[]`)
+
+**Example:**
+```yaml
+ResourceHistorySystem:
+  enabled: true
+  frequency: daily  # Save history daily at midnight
+  rate: 1  # Every 1 day
+  resources: []  # Track all resources
+```
+
+History data is stored in the `resource_history` table and can be exported to CSV using `make export-resources`.

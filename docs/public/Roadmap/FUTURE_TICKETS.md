@@ -178,14 +178,14 @@ This document tracks planned features, improvements, and technical debt for futu
 ### Features
 - [ ] Scenario config system
 - [ ] Batch run capability
-- [ ] CSV export
+- [x] CSV export (✅ Phase 1 complete - resource history export)
 - [ ] Deterministic replay
 - [ ] Parameter sweeps
 - [ ] Statistical analysis tools
 
 ### Research Tools
 - [ ] Multi-scenario comparison
-- [ ] Data export formats
+- [x] Data export formats (✅ Phase 1 complete - CSV export for resource history)
 - [ ] Reproducibility tools
 - [ ] Academic-grade outputs
 
@@ -195,7 +195,7 @@ This document tracks planned features, improvements, and technical debt for futu
 
 ### Core Engine
 - [ ] Consider interface/context objects for resource operations (when needed)
-- [ ] Add change tracking for analytics
+- [x] Add change tracking for analytics (✅ Phase 1 complete - ResourceHistorySystem tracks resource values over time)
 - [ ] Transaction-like operations (if needed)
 - [ ] Performance optimization for large populations
 
@@ -209,7 +209,7 @@ This document tracks planned features, improvements, and technical debt for futu
 - [ ] API reference
 - [ ] System development guide
 - [ ] Config schema documentation
-- [ ] Analytics/reporting guide
+- [x] Analytics/reporting guide (✅ Phase 1 complete - CSV export documented in Operations guide)
 
 ### Infrastructure
 - [ ] Database migration system (for schema changes)

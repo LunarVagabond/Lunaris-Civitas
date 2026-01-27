@@ -29,6 +29,10 @@ make test
   - Model/composable patterns
   - Detailed call chains for common operations
 
+## Analytics & History
+
+The simulation includes a `ResourceHistorySystem` that tracks resource values over time for analytics. History data can be exported to CSV for analysis. See [Operations](../Operations/README.md#exporting-data) for export commands.
+
 ## Development Guidelines
 
 - Follow the system contract for all systems

@@ -8,6 +8,7 @@ from src.engine.simulation import Simulation
 from src.systems.resource.production import ResourceProductionSystem
 from src.systems.resource.consumption import ResourceConsumptionSystem
 from src.systems.resource.replenishment import ResourceReplenishmentSystem
+from src.systems.analytics.history import ResourceHistorySystem
 from src.core.logging import setup_logging
 
 
@@ -59,6 +60,7 @@ def main():
     sim.register_system(ResourceProductionSystem())
     sim.register_system(ResourceConsumptionSystem())
     sim.register_system(ResourceReplenishmentSystem())
+    sim.register_system(ResourceHistorySystem())
     
     # Run simulation
     try:

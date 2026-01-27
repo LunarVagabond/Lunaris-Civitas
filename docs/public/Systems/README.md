@@ -46,6 +46,28 @@ Consumes resources based on configuration. Respects modifiers affecting consumpt
 
 Replenishes resources based on their `replenishment_rate` property. Only replenishes non-finite resources.
 
+### ResourceHistorySystem
+
+Tracks resource values over time for analytics and trend analysis. Saves resource history to the database at configurable intervals (hourly, daily, weekly, monthly, or yearly).
+
+**Configuration:**
+- `enabled`: Enable/disable history tracking (default: `true`)
+- `frequency`: Save frequency - `'hourly'`, `'daily'`, `'weekly'`, `'monthly'`, or `'yearly'` (default: `'daily'`)
+- `rate`: Save every N periods (e.g., `rate: 2` means every 2 days if frequency is daily) (default: `1`)
+- `resources`: List of resource IDs to track (empty list = track all resources) (default: `[]`)
+
+**Example:**
+```yaml
+systems_config:
+  ResourceHistorySystem:
+    enabled: true
+    frequency: daily  # Save history daily at midnight
+    rate: 1  # Every 1 day
+    resources: []  # Track all resources
+```
+
+History data can be exported to CSV using the `make export-resources` command or `python -m src.cli.export_resources`.
+
 ## Adding a New System
 
 See [Adding Systems](ADDING_SYSTEMS.md) for detailed instructions.

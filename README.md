@@ -79,6 +79,15 @@ Run for a limited number of ticks:
 python -m src --config configs/dev.yml --max-ticks 100
 ```
 
+### Export Resource History
+
+Export resource history to CSV for analysis:
+```bash
+make export-resources
+```
+
+This exports all resource history to `_running/exports/resources_YYYYMMDD_HHMMSS.csv`. See [Operations documentation](docs/public/Operations/README.md#exporting-data) for advanced options.
+
 ### Command Line Options
 
 - `--config PATH`: Path to configuration file (YAML or JSON)

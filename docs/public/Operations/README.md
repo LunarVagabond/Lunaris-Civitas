@@ -62,3 +62,48 @@ The simulation uses SQLite for persistence. Database files are stored in `_runni
 ## Logging
 
 Logs are written to `_running/simulation.log` by default. Log level can be configured in the config file or via command line.
+
+## Exporting Data
+
+### Export Resource History
+
+Export resource history to CSV for analysis:
+
+```bash
+make export-resources
+```
+
+This exports all resource history to `_running/exports/resources_YYYYMMDD_HHMMSS.csv`.
+
+**Advanced options:**
+
+```bash
+# Export specific resources
+python -m src.cli.export_resources --resource-id food --resource-id water
+
+# Export by tick range
+python -m src.cli.export_resources --start-tick 100 --end-tick 200
+
+# Export by date range
+python -m src.cli.export_resources --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
+
+# Export to specific file
+python -m src.cli.export_resources --output path/to/output.csv
+
+# Pivot format (one column per resource)
+python -m src.cli.export_resources --pivot
+```
+
+**CSV Format:**
+
+Standard format (one row per resource per timestamp):
+- `timestamp`: ISO format datetime
+- `tick`: Simulation tick number
+- `resource_id`: Resource identifier
+- `amount`: Resource amount at this timestamp
+- `status_id`: Resource status (depleted, at_risk, moderate, sufficient, abundant)
+- `utilization_percent`: Utilization percentage (if max_capacity exists)
+
+Pivot format (`--pivot`):
+- One row per timestamp
+- Columns: `timestamp`, `tick`, `{resource_id}_amount`, `{resource_id}_status`, `{resource_id}_utilization` for each resource

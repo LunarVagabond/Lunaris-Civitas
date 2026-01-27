@@ -104,10 +104,16 @@ class Simulation:
         self.start_datetime = start_datetime  # Store for elapsed time calculation
         simulation_time = SimulationTime(start_datetime, rng_seed)
         
+        # Add db_path to config snapshot for systems that need it (e.g., HistorySystem)
+        config_with_db = config.copy()
+        if 'simulation' not in config_with_db:
+            config_with_db['simulation'] = {}
+        config_with_db['simulation']['db_path'] = str(self.db_path)
+        
         # Create world state
         self.world_state = WorldState(
             simulation_time=simulation_time,
-            config_snapshot=config,
+            config_snapshot=config_with_db,
             rng_seed=rng_seed
         )
         
@@ -214,10 +220,12 @@ class Simulation:
         if self.resume:
             self._resume_simulation()
         else:
-            if not self.config_path:
-                raise ValueError("config_path required for new simulation")
-            config = load_config(self.config_path)
-            self._initialize_new_simulation(config)
+            # If world_state is already initialized (e.g., in tests), skip initialization
+            if self.world_state is None:
+                if not self.config_path:
+                    raise ValueError("config_path required for new simulation")
+                config = load_config(self.config_path)
+                self._initialize_new_simulation(config)
         
         self.running = True
         logger.info("Starting simulation loop")

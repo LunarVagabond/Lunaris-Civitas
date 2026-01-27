@@ -243,6 +243,35 @@ class Database:
             )
         """)
         
+        # Resource history table (time-series data)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS resource_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                tick INTEGER NOT NULL,
+                resource_id TEXT NOT NULL,
+                amount REAL NOT NULL,
+                status_id TEXT NOT NULL,
+                utilization_percent REAL,
+                FOREIGN KEY (resource_id) REFERENCES resources(id),
+                FOREIGN KEY (status_id) REFERENCES status_enum(id)
+            )
+        """)
+        
+        # Create indexes for query performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_resource_history_timestamp_resource 
+            ON resource_history(timestamp, resource_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_resource_history_tick 
+            ON resource_history(tick)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_resource_history_resource_id 
+            ON resource_history(resource_id)
+        """)
+        
         self._connection.commit()
     
     def save_world_state(self, world_state: WorldState) -> None:
@@ -455,3 +484,124 @@ class Database:
         cursor = self._connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM world_state WHERE id = 1")
         return cursor.fetchone()[0] > 0
+    
+    def save_resource_history(
+        self,
+        timestamp: str,
+        tick: int,
+        resource_id: str,
+        amount: float,
+        status_id: str,
+        utilization_percent: Optional[float] = None
+    ) -> None:
+        """Save resource history record to database.
+        
+        Args:
+            timestamp: ISO format datetime string
+            tick: Simulation tick number
+            resource_id: Resource identifier
+            amount: Resource amount at this timestamp
+            status_id: Resource status ID
+            utilization_percent: Utilization percentage (None if no max_capacity)
+        """
+        cursor = self._connection.cursor()
+        cursor.execute("""
+            INSERT INTO resource_history 
+            (timestamp, tick, resource_id, amount, status_id, utilization_percent)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (timestamp, tick, resource_id, amount, status_id, utilization_percent))
+        self._connection.commit()
+    
+    def get_resource_history(
+        self,
+        resource_id: str,
+        start_tick: Optional[int] = None,
+        end_tick: Optional[int] = None,
+        start_datetime: Optional[str] = None,
+        end_datetime: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get resource history for a specific resource.
+        
+        Args:
+            resource_id: Resource identifier
+            start_tick: Optional start tick (inclusive)
+            end_tick: Optional end tick (inclusive)
+            start_datetime: Optional start datetime ISO string (inclusive)
+            end_datetime: Optional end datetime ISO string (inclusive)
+            
+        Returns:
+            List of history records as dictionaries
+        """
+        cursor = self._connection.cursor()
+        
+        query = "SELECT * FROM resource_history WHERE resource_id = ?"
+        params = [resource_id]
+        
+        if start_tick is not None:
+            query += " AND tick >= ?"
+            params.append(start_tick)
+        
+        if end_tick is not None:
+            query += " AND tick <= ?"
+            params.append(end_tick)
+        
+        if start_datetime is not None:
+            query += " AND timestamp >= ?"
+            params.append(start_datetime)
+        
+        if end_datetime is not None:
+            query += " AND timestamp <= ?"
+            params.append(end_datetime)
+        
+        query += " ORDER BY tick ASC, timestamp ASC"
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        return [dict(row) for row in rows]
+    
+    def get_all_resource_history(
+        self,
+        start_tick: Optional[int] = None,
+        end_tick: Optional[int] = None,
+        start_datetime: Optional[str] = None,
+        end_datetime: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get history for all resources.
+        
+        Args:
+            start_tick: Optional start tick (inclusive)
+            end_tick: Optional end tick (inclusive)
+            start_datetime: Optional start datetime ISO string (inclusive)
+            end_datetime: Optional end datetime ISO string (inclusive)
+            
+        Returns:
+            List of history records as dictionaries
+        """
+        cursor = self._connection.cursor()
+        
+        query = "SELECT * FROM resource_history WHERE 1=1"
+        params = []
+        
+        if start_tick is not None:
+            query += " AND tick >= ?"
+            params.append(start_tick)
+        
+        if end_tick is not None:
+            query += " AND tick <= ?"
+            params.append(end_tick)
+        
+        if start_datetime is not None:
+            query += " AND timestamp >= ?"
+            params.append(start_datetime)
+        
+        if end_datetime is not None:
+            query += " AND timestamp <= ?"
+            params.append(end_datetime)
+        
+        query += " ORDER BY tick ASC, timestamp ASC, resource_id ASC"
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        return [dict(row) for row in rows]

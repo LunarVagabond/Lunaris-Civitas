@@ -22,6 +22,7 @@ help:
 	@echo "  make modifier-list - View all modifiers from database"
 	@echo "  make world-state-view - Display current world state summary"
 	@echo "  make resources-view - Display all resources and their states"
+	@echo "  make export-resources - Export resource history to CSV"
 	@echo "  make clean    - Clean build artifacts"
 	@echo "  make help     - Show this help message"
 
@@ -160,14 +161,20 @@ world-state-view: $(VENV)
 resources-view: $(VENV)
 	$(PYTHON) -m src.cli.view_resources
 
+export-resources: $(VENV)
+	@mkdir -p _running/exports
+	$(PYTHON) -m src.cli.export_resources
+	@echo "Resource history exported to _running/exports/"
+
 clean:
-	rm -rf $(VENV)
-	rm -rf _running/*.db
-	rm -rf _running/logs/*.log
-	rm -rf _running/pids/*.pid
-	rm -rf site/
-	rm -rf .pytest_cache/
-	rm -rf .coverage
-	rm -rf htmlcov/
-	find . -type d -name __pycache__ -exec rm -r {} +
-	find . -type f -name "*.pyc" -delete
+	@rm -rf _running/*.db
+	@rm -rf _running/logs/*.log
+	@rm -rf _running/pids/*.pid
+	@rm -rf _running/exports/*.csv
+	@rm -rf site/
+	@rm -rf .pytest_cache/
+	@rm -rf .coverage
+	@rm -rf htmlcov/
+	@find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@echo "Cleaned: _running, site, .pytest_cache, .coverage, htmlcov, __pycache__, *.pyc"
