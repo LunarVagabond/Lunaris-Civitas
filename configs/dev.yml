@@ -1,0 +1,93 @@
+# Development configuration for Lunaris Civitas simulation
+#
+# TIME MODEL:
+#   - 1 tick = 1 hour
+#   - Resources have replenishment_frequency (natural replenishment timing)
+#   - Production/consumption systems have per-resource frequencies (natural production/decay timing)
+#   - Rates are per frequency period (e.g., if frequency is 'monthly', rate is per month)
+#   - These represent baseline natural processes; future systems (humans, jobs) will add additional consumption/production
+
+simulation:
+  start_datetime: "2024-01-01T00:00:00"
+  rng_seed: RANDOM # or a specific seed number
+  log_level: INFO
+
+logging:
+  # Configurable logging for world state and system metrics
+  # frequency: 'hourly', 'daily', 'weekly', 'monthly', or 'yearly'
+  # rate: Log every N periods (e.g., rate=2 means every 2 weeks)
+  
+  world_state:
+    enabled: true
+    frequency: monthly  # Log world state every week with change summaries
+    rate: 1  # Every 1 week
+  
+  systems:
+    enabled: false  # System metrics disabled - systems don't change frequently enough
+    frequency: monthly
+    rate: 2
+
+resources:
+  # Resource definitions
+  # replenishment_frequency: 'hourly', 'daily', 'weekly', 'monthly', or 'yearly'
+  # Controls natural replenishment timing (rain, growth, etc.)
+  
+  - id: food
+    name: Food
+    initial_amount: 1000.0
+    max_capacity: 10000.0
+    replenishment_rate: 50.0  # per replenishment_frequency period
+    finite: false
+    replenishment_frequency: hourly  # Natural replenishment hourly (e.g., growth)
+  
+  - id: water
+    name: Water
+    initial_amount: 2000.0
+    max_capacity: 5000.0
+    replenishment_rate: 100.0  # per replenishment_frequency period
+    finite: false
+    replenishment_frequency: hourly  # Natural replenishment hourly (e.g., rain, rivers)
+  
+  - id: oil
+    name: Oil
+    initial_amount: 500.0
+    finite: true  # Finite resources cannot replenish (no replenishment_frequency needed)
+  
+  - id: electricity
+    name: Electricity
+    initial_amount: 5000.0
+    max_capacity: 10000.0
+    replenishment_rate: 200.0  # per replenishment_frequency period
+    finite: false
+    replenishment_frequency: hourly  # Natural replenishment hourly (e.g., solar, wind)
+
+systems:
+  - ResourceProductionSystem
+  - ResourceConsumptionSystem
+  - ResourceReplenishmentSystem
+
+systems_config:
+  ResourceProductionSystem:
+    # Natural/baseline production rates
+    # Format: resource_id: rate (hourly default) or {rate: X, frequency: 'Y'}
+    # These represent natural production processes (e.g., plant growth, solar generation)
+    production:
+      food: 100.0      # produces 100 food per hour (default: hourly)
+      water: 150.0    # produces 150 water per hour (default: hourly)
+      electricity: 300.0  # produces 300 electricity per hour (default: hourly)
+      # Example with custom frequency:
+      # wood:
+      #   rate: 50.0
+      #   frequency: daily  # produces 50 wood per day
+  
+  ResourceConsumptionSystem:
+    # Natural/baseline consumption rates (decay, evaporation, etc.)
+    # Format: resource_id: rate (hourly default) or {rate: X, frequency: 'Y'}
+    # These represent natural consumption processes (e.g., evaporation, spoilage)
+    consumption:
+      food: 80.0      # consumes 80 food per hour (default: hourly) - natural spoilage
+      water: 120.0    # consumes 120 water per hour (default: hourly) - evaporation
+      oil:
+        rate: 10.0
+        frequency: monthly  # consumes 10 oil per month - natural degradation
+      electricity: 250.0  # consumes 250 electricity per hour (default: hourly) - natural loss

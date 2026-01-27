@@ -1,0 +1,10 @@
+# Core dependencies
+PyYAML>=6.0.1
+
+# Documentation
+mkdocs>=1.5.3
+mkdocs-material>=9.5.0
+
+# Testing (optional, for development)
+pytest>=7.4.0
+pytest-cov>=4.1.0
