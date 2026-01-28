@@ -60,6 +60,13 @@ resources:
     replenishment_rate: 200.0  # per replenishment_frequency period
     finite: false
     replenishment_frequency: hourly  # Natural replenishment hourly (e.g., solar, wind)
+  
+  - id: money
+    name: Money
+    initial_amount: 10000.0
+    finite: true  # No natural generation - money comes from jobs only
+    # NOTE: This architecture may change in Phase 6 when markets are added
+    # Money may need to be handled differently when we have markets, wages, and economic systems
 
 systems:
   - ResourceProductionSystem
@@ -74,6 +81,8 @@ systems:
   - HumanNeedsFulfillmentSystem
   - HealthSystem
   - DeathSystem
+  - JobSystem
+  - JobHistorySystem
 
 systems_config:
   ResourceProductionSystem:
@@ -226,3 +235,99 @@ systems_config:
       chance_increase_per_year: 0.00001  # Base increase per year past old_age_start
       chance_multiplier_per_year: 1.1  # Exponential multiplier after peak_mortality_age
       # No max_age - outliers can survive past 100 (very rare)
+  
+  JobSystem:
+    # Job system for human employment, resource production, and salary management
+    enabled: true
+    assignment_frequency: monthly  # When to assign jobs (1st of month)
+    production_frequency: monthly  # Default production frequency
+    
+    # Global age restrictions
+    min_work_age: 15  # Global minimum age to work (jobs can override)
+    max_work_age: 70  # Maximum age (retirement)
+    
+    # Dynamic hiring chance modifiers
+    # Base hiring chance adjusts based on job fill percentage
+    # Empty jobs are "needy" (higher chance), full jobs are "picky" (lower chance)
+    hiring_chance_multiplier: 0.5  # How much fill percentage affects hiring chance
+    # Formula: adjusted_chance = base_hiring_chance * (1.0 + (1.0 - fill_percentage) * multiplier)
+    
+    # Job loss system (firing, quitting, layoffs, etc.)
+    # NOTE: Job loss probability is hardcoded for now (small random %)
+    # Future: Make this configurable per job type and differentiate between firing/quitting/layoffs
+    
+    # Salary increase system
+    yearly_raise_probability: 0.7  # 70% chance of yearly raise
+    six_month_raise_probability: 0.05  # 5% chance of 6-month raise
+    raise_amount_range: [0.02, 0.05]  # 2-5% increase per raise
+    
+    # Hiring probability modifiers
+    base_hiring_chance: 0.3  # Base chance per month for unemployed
+    
+    jobs:
+      farmer:
+        name: Farmer
+        max_percentage: 10.0  # Max 10% of population
+        max_salary: 100.0  # Initial offer cap (per production period)
+        max_salary_cap: 130.0  # Maximum possible salary (after raises)
+        min_salary: 50.0
+        min_age: 16  # Minimum age for this job
+        production:
+          resource_id: food
+          rate: 50.0  # Per worker per production period
+          frequency: monthly
+        required_skill: farming
+        skill_weight: 0.7  # How much skills matter (0.0-1.0)
+        charisma_weight: 0.1  # How much charisma helps
+        job_type: production  # production or service
+        
+      miner:
+        name: Miner
+        max_percentage: 5.0
+        max_salary: 120.0
+        max_salary_cap: 160.0
+        min_salary: 60.0
+        min_age: 18  # Mining requires adult age
+        production:
+          resource_id: raw_materials
+          rate: 30.0
+          frequency: monthly
+        required_skill: mining
+        skill_weight: 0.8
+        charisma_weight: 0.05
+        job_type: production
+        
+      teacher:
+        name: Teacher
+        max_percentage: 3.0
+        max_salary: 150.0
+        max_salary_cap: 200.0
+        min_salary: 80.0
+        min_age: 21  # Professional job requires adult age
+        # No production - service job, just pays money
+        required_skill: teaching
+        skill_weight: 0.9  # High skill requirement
+        charisma_weight: 0.2  # Charisma helps a lot
+        job_type: service
+        
+      burger_flipper:
+        name: Fast Food Worker
+        max_percentage: 8.0
+        max_salary: 40.0
+        max_salary_cap: 55.0
+        min_salary: 20.0
+        min_age: 15  # Can start younger for low-skill jobs
+        # No production - service job
+        required_skill: service
+        skill_weight: 0.2  # Low skill requirement
+        charisma_weight: 0.3  # Charisma helps
+        job_type: service
+        prioritize_unemployed: true  # Avoid overqualified
+  
+  JobHistorySystem:
+    # Job history tracking for analytics
+    # frequency: 'hourly', 'daily', 'weekly', 'monthly', or 'yearly'
+    # rate: Save every N periods (e.g., rate=2 means every 2 months)
+    enabled: true
+    frequency: monthly  # Save history monthly at start of month
+    rate: 1  # Every 1 month

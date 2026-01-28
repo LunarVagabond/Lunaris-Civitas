@@ -17,6 +17,7 @@ The simulation engine now supports:
 ## Development Phases
 
 See [Development Phases](PHASES.md) for detailed phase breakdown:
+
 - Phase 0: Simulation Spine ✅
 - Phase 1: Resources & World State ✅
 - Phase 2: Base Human (Minimal Survival) ✅

@@ -8,6 +8,7 @@ from src.models.components.age import AgeComponent
 from src.models.components.wealth import WealthComponent
 from src.models.components.employment import EmploymentComponent
 from src.models.components.household import HouseholdComponent
+from src.models.components.skills import SkillsComponent
 
 __all__ = [
     'NeedsComponent',
@@ -18,4 +19,5 @@ __all__ = [
     'WealthComponent',
     'EmploymentComponent',
     'HouseholdComponent',
+    'SkillsComponent',
 ]

@@ -22,6 +22,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Goal:** Prove the engine works with a minimal, stable core.
 
 **Deliverables:**
+
 - Tick scheduler (1 tick = 1 hour)
 - System registry and contract
 - Event bus (modifiers system)
@@ -30,6 +31,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Seeded RNG for determinism
 
 **Test Criteria:**
+
 - Run 10 years with fake entities
 - Restart sim, resume state exactly
 - Add a dummy system later and migrate cleanly

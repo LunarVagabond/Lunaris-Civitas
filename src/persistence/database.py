@@ -336,6 +336,31 @@ class Database:
             ON entity_history(tick)
         """)
         
+        # Job history table (time-series data for employment statistics)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS job_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                tick INTEGER NOT NULL,
+                total_employed INTEGER NOT NULL,
+                employment_rate REAL NOT NULL,
+                job_distribution TEXT NOT NULL,
+                avg_salary_by_job TEXT NOT NULL,
+                total_salary_paid REAL NOT NULL,
+                job_openings TEXT NOT NULL
+            )
+        """)
+        
+        # Create indexes for query performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_job_history_timestamp 
+            ON job_history(timestamp)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_job_history_tick 
+            ON job_history(tick)
+        """)
+        
         # Entities table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS entities (
@@ -817,6 +842,108 @@ class Database:
         rows = cursor.fetchall()
         
         return [dict(row) for row in rows]
+    
+    def save_job_history(
+        self,
+        timestamp: str,
+        tick: int,
+        total_employed: int,
+        employment_rate: float,
+        job_distribution: Dict[str, int],
+        avg_salary_by_job: Dict[str, float],
+        total_salary_paid: float,
+        job_openings: Dict[str, int]
+    ) -> None:
+        """Save job history record to database.
+        
+        Args:
+            timestamp: ISO format datetime string
+            tick: Simulation tick number
+            total_employed: Total number of employed entities
+            employment_rate: Employment rate as percentage (0-100)
+            job_distribution: Dictionary mapping job_type -> count
+            avg_salary_by_job: Dictionary mapping job_type -> average salary
+            total_salary_paid: Total salary paid across all jobs
+            job_openings: Dictionary mapping job_type -> open slots
+        """
+        import json
+        cursor = self._connection.cursor()
+        cursor.execute("""
+            INSERT INTO job_history 
+            (timestamp, tick, total_employed, employment_rate, job_distribution, 
+             avg_salary_by_job, total_salary_paid, job_openings)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            timestamp,
+            tick,
+            total_employed,
+            employment_rate,
+            json.dumps(job_distribution),
+            json.dumps(avg_salary_by_job),
+            total_salary_paid,
+            json.dumps(job_openings)
+        ))
+        self._connection.commit()
+    
+    def get_job_history(
+        self,
+        start_tick: Optional[int] = None,
+        end_tick: Optional[int] = None,
+        start_datetime: Optional[str] = None,
+        end_datetime: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get job history records.
+        
+        Args:
+            start_tick: Optional start tick (inclusive)
+            end_tick: Optional end tick (inclusive)
+            start_datetime: Optional start datetime ISO string (inclusive)
+            end_datetime: Optional end datetime ISO string (inclusive)
+            
+        Returns:
+            List of history records as dictionaries
+        """
+        import json
+        cursor = self._connection.cursor()
+        
+        query = "SELECT * FROM job_history WHERE 1=1"
+        params = []
+        
+        if start_tick is not None:
+            query += " AND tick >= ?"
+            params.append(start_tick)
+        
+        if end_tick is not None:
+            query += " AND tick <= ?"
+            params.append(end_tick)
+        
+        if start_datetime is not None:
+            query += " AND timestamp >= ?"
+            params.append(start_datetime)
+        
+        if end_datetime is not None:
+            query += " AND timestamp <= ?"
+            params.append(end_datetime)
+        
+        query += " ORDER BY tick ASC, timestamp ASC"
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Parse JSON fields
+        result = []
+        for row in rows:
+            record = dict(row)
+            # Parse JSON strings back to dictionaries
+            if 'job_distribution' in record and isinstance(record['job_distribution'], str):
+                record['job_distribution'] = json.loads(record['job_distribution'])
+            if 'avg_salary_by_job' in record and isinstance(record['avg_salary_by_job'], str):
+                record['avg_salary_by_job'] = json.loads(record['avg_salary_by_job'])
+            if 'job_openings' in record and isinstance(record['job_openings'], str):
+                record['job_openings'] = json.loads(record['job_openings'])
+            result.append(record)
+        
+        return result
     
     def get_all_resource_history(
         self,

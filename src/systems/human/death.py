@@ -280,5 +280,23 @@ class DeathSystem(System):
             f"Entity {entity.entity_id} died from {reason}{death_cause}{age_info}"
         )
         
+        # Return money to world supply
+        # NOTE: Future phases will add family inheritance, government policies, etc.
+        # For now, money returns to world supply when humans die
+        wealth = entity.get_component('Wealth')
+        if wealth and wealth.money > 0:
+            money_resource = world_state.get_resource('money')
+            if money_resource:
+                returned = money_resource.add(wealth.money)
+                logger.info(
+                    f"Entity {entity.entity_id} money returned to world supply: "
+                    f"{wealth.money:.2f} (total world money: {money_resource.current_amount:.2f})"
+                )
+            else:
+                logger.warning(
+                    f"Entity {entity.entity_id} had money ({wealth.money:.2f}) but "
+                    f"money resource not found in world state"
+                )
+        
         # Remove from world state
         world_state.remove_entity(entity.entity_id)

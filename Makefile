@@ -173,14 +173,61 @@ export-entities: $(VENV)
 	@echo "Entity history exported to _running/exports/"
 
 clean:
-	@rm -rf _running/*.db
-	@rm -rf _running/logs/*.log
-	@rm -rf _running/pids/*.pid
-	@rm -rf _running/exports/*.csv
-	@rm -rf site/
-	@rm -rf .pytest_cache/
-	@rm -rf .coverage
-	@rm -rf htmlcov/
-	@find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true
-	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	@echo "Cleaned: _running, site, .pytest_cache, .coverage, htmlcov, __pycache__, *.pyc"
+	@ACTIVE_PIDS=0; \
+	KILL_PIDS=""; \
+	if [ -f _running/pids/simulation.pid ]; then \
+		PID=$$(cat _running/pids/simulation.pid 2>/dev/null); \
+		if [ -n "$$PID" ] && ps -p $$PID > /dev/null 2>&1; then \
+			ACTIVE_PIDS=$$((ACTIVE_PIDS + 1)); \
+			KILL_PIDS="$$KILL_PIDS simulation ($$PID)"; \
+		fi; \
+	fi; \
+	if [ -f _running/pids/docs.pid ]; then \
+		PID=$$(cat _running/pids/docs.pid 2>/dev/null); \
+		if [ -n "$$PID" ] && ps -p $$PID > /dev/null 2>&1; then \
+			ACTIVE_PIDS=$$((ACTIVE_PIDS + 1)); \
+			KILL_PIDS="$$KILL_PIDS docs ($$PID)"; \
+		fi; \
+	fi; \
+	if [ $$ACTIVE_PIDS -gt 0 ]; then \
+		echo "WARNING: Found $$ACTIVE_PIDS active process(es):$$KILL_PIDS"; \
+		echo -n "Kill these processes and clean? (y/N): "; \
+		read -r CONFIRM; \
+		if [ "$$CONFIRM" != "y" ] && [ "$$CONFIRM" != "Y" ]; then \
+			echo "Skipping cleanup of logs, pids, and database files."; \
+			rm -rf _running/exports/*.csv; \
+			rm -rf site/; \
+			rm -rf .pytest_cache/; \
+			rm -rf .coverage; \
+			rm -rf htmlcov/; \
+			find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true; \
+			find . -type f -name "*.pyc" -delete 2>/dev/null || true; \
+			echo "Cleaned: _running/exports, site, .pytest_cache, .coverage, htmlcov, __pycache__, *.pyc"; \
+			exit 0; \
+		fi; \
+		if [ -f _running/pids/simulation.pid ]; then \
+			PID=$$(cat _running/pids/simulation.pid 2>/dev/null); \
+			if [ -n "$$PID" ] && ps -p $$PID > /dev/null 2>&1; then \
+				kill $$PID 2>/dev/null || true; \
+				echo "Killed simulation process (PID: $$PID)"; \
+			fi; \
+		fi; \
+		if [ -f _running/pids/docs.pid ]; then \
+			PID=$$(cat _running/pids/docs.pid 2>/dev/null); \
+			if [ -n "$$PID" ] && ps -p $$PID > /dev/null 2>&1; then \
+				kill $$PID 2>/dev/null || true; \
+				echo "Killed docs server process (PID: $$PID)"; \
+			fi; \
+		fi; \
+	fi; \
+	rm -rf _running/*.db; \
+	rm -rf _running/logs/*.log; \
+	rm -rf _running/pids/*.pid; \
+	rm -rf _running/exports/*.csv; \
+	rm -rf site/; \
+	rm -rf .pytest_cache/; \
+	rm -rf .coverage; \
+	rm -rf htmlcov/; \
+	find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true; \
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true; \
+	echo "Cleaned: _running, site, .pytest_cache, .coverage, htmlcov, __pycache__, *.pyc"

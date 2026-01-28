@@ -17,6 +17,8 @@ from src.systems.human.requirement_resolver import RequirementResolverSystem
 from src.systems.human.needs_fulfillment import HumanNeedsFulfillmentSystem
 from src.systems.human.health import HealthSystem
 from src.systems.human.death import DeathSystem
+from src.systems.human.job import JobSystem
+from src.systems.analytics.job_history import JobHistorySystem
 from src.core.logging import setup_logging
 
 
@@ -77,6 +79,8 @@ def main():
     sim.register_system(HumanNeedsFulfillmentSystem())
     sim.register_system(HealthSystem())
     sim.register_system(DeathSystem())
+    sim.register_system(JobSystem())
+    sim.register_system(JobHistorySystem())
     
     # Run simulation
     try:

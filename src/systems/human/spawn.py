@@ -19,6 +19,7 @@ from src.models.components.age import AgeComponent
 from src.models.components.pressure import PressureComponent
 from src.models.components.inventory import InventoryComponent
 from src.models.components.wealth import WealthComponent
+from src.models.components.skills import SkillsComponent
 
 
 logger = get_logger('systems.human.spawn')
@@ -276,6 +277,12 @@ class HumanSpawnSystem(System):
         if 'Age' not in components_config or components_config.get('Age', 0) > 0:
             entity.add_component(AgeComponent(birth_date=birth_date, current_date=birth_date))
         
+        # Always assign Skills component (all humans have traits)
+        # Future Enhancement: Traits can grow/decay over time (not implementing now)
+        if 'Skills' not in components_config or components_config.get('Skills', 0) > 0:
+            skills = self._create_skills_component(world_state)
+            entity.add_component(skills)
+        
         # Assign optional components based on probabilities
         for component_type, probability in components_config.items():
             if component_type in ('Needs', 'Health', 'Age'):
@@ -289,4 +296,69 @@ class HumanSpawnSystem(System):
                     entity.add_component(InventoryComponent())
                 elif component_type == 'Wealth':
                     entity.add_component(WealthComponent())
+                elif component_type == 'Skills':
+                    # Skills are always created above, but allow override if needed
+                    skills = self._create_skills_component(world_state)
+                    entity.add_component(skills)
                 # Add more component types as needed
+    
+    def _create_skills_component(self, world_state: Any) -> SkillsComponent:
+        """Create a SkillsComponent with trait point distribution.
+        
+        Uses a trait point system where humans have limited "trait points" to distribute.
+        Total trait value is constrained (e.g., sum of core traits ~3.0-4.0).
+        Rare outliers can have higher or lower total trait values.
+        This prevents everyone from being maxed in all traits.
+        
+        Future Enhancement: Traits can grow/decay over time based on experience,
+        age, and activities. This is documented but not implemented yet.
+        
+        Args:
+            world_state: World state instance (for RNG)
+            
+        Returns:
+            SkillsComponent with distributed traits and random job skills
+        """
+        # Target total trait points (sum of all core traits)
+        # Most humans have ~3.0-4.0 total points
+        # Rare outliers can have higher (up to 4.5) or lower (down to 2.5)
+        base_total = world_state.rng.uniform(3.0, 4.0)
+        
+        # 10% chance of being an outlier
+        if world_state.rng.random() < 0.1:
+            if world_state.rng.random() < 0.5:
+                # High outlier (talented)
+                base_total = world_state.rng.uniform(4.0, 4.5)
+            else:
+                # Low outlier (struggling)
+                base_total = world_state.rng.uniform(2.5, 3.0)
+        
+        # Distribute points across core traits
+        # Use weighted random distribution
+        traits = ['charisma', 'intelligence', 'strength', 'creativity', 'work_ethic']
+        weights = [world_state.rng.random() for _ in traits]  # Random weights
+        total_weight = sum(weights)
+        
+        # Normalize and scale to target total
+        trait_values = {}
+        for i, trait in enumerate(traits):
+            trait_values[trait] = (weights[i] / total_weight) * base_total
+            # Clamp to 0.0-1.0 range
+            trait_values[trait] = max(0.0, min(1.0, trait_values[trait]))
+        
+        # Generate random job-specific skills
+        # Common skills that might be needed
+        common_skills = ['farming', 'mining', 'teaching', 'service', 'engineering']
+        job_skills = {}
+        for skill_name in common_skills:
+            # Random skill value (0.0-1.0)
+            job_skills[skill_name] = world_state.rng.random()
+        
+        return SkillsComponent(
+            charisma=trait_values['charisma'],
+            intelligence=trait_values['intelligence'],
+            strength=trait_values['strength'],
+            creativity=trait_values['creativity'],
+            work_ethic=trait_values['work_ethic'],
+            job_skills=job_skills
+        )
