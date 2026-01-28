@@ -2,17 +2,23 @@
 
 ## Current Status
 
-**Phase 2: Base Human (Minimal Survival)** - ✅ Complete
+**Phase 3: Job System (Resource Production)** - ✅ Complete
 
 The simulation engine now supports:
 - Resource management (production, consumption, replenishment)
 - Natural/baseline processes with configurable frequencies
 - Modifier system for buffs/debuffs
 - Human entities with needs, health, and survival mechanics
+- **Job system with multi-resource payments** (money, crypto, bananas, etc.)
+- **Market costs in multiple resource types**
+- Skills-based job assignment with charisma bonuses
+- Dynamic hiring chance based on job availability
+- Salary increases and job loss mechanisms
+- Employment statistics and history tracking
 - SQLite persistence
 - Config-driven initialization
 
-**Current Issue:** Food is running out quickly. Humans are dying from hunger faster than natural production can replenish resources. **Phase 3 (Job System) is critical** to enable humans to produce resources.
+**Next Priority:** **Phase 4 (Reproduction System)** - Critical for population sustainability
 
 ## Development Phases
 
@@ -21,8 +27,8 @@ See [Development Phases](PHASES.md) for detailed phase breakdown:
 - Phase 0: Simulation Spine ✅
 - Phase 1: Resources & World State ✅
 - Phase 2: Base Human (Minimal Survival) ✅
-- **Phase 3: Job System (Resource Production)** 🔜 **NEXT PRIORITY**
-- **Phase 4: Reproduction System** 🔜 **HIGH PRIORITY**
+- **Phase 3: Job System (Resource Production)** ✅ **COMPLETE**
+- **Phase 4: Reproduction System** 🔜 **NEXT PRIORITY**
 - Phase 5: Actions System 🔜
 - Phase 6: Economy & Markets 🔜
 - Phase 7: Geography & Environment 🔜

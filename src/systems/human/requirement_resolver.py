@@ -268,11 +268,14 @@ class RequirementResolverSystem(System):
     ) -> float:
         """Fulfill requirement by purchasing from market.
         
+        Supports multiple payment resource types (money, crypto, or any resource).
+        Requirements are specified in source.requirements as {resource_id: cost_per_unit}
+        
         Args:
             entity: Entity requesting fulfillment
-            resource_id: Resource identifier
+            resource_id: Resource identifier to purchase
             amount: Required amount
-            source: Market source definition
+            source: Market source definition with requirements
             world_state: World state for context
             
         Returns:
@@ -282,12 +285,14 @@ class RequirementResolverSystem(System):
         if wealth is None:
             return 0.0
         
-        # Calculate cost
-        cost_per_unit = source.requirements.get('money', 0.0)
-        total_cost = cost_per_unit * amount
+        # Check if entity has enough of all required payment resources
+        # Calculate total requirements (per unit * amount)
+        total_requirements = {}
+        for req_resource_id, cost_per_unit in source.requirements.items():
+            total_requirements[req_resource_id] = cost_per_unit * amount
         
-        # Check if entity has enough money
-        if not hasattr(wealth, 'money') or wealth.money < total_cost:
+        # Check if entity has enough of all required resources
+        if not wealth.has_resources(total_requirements):
             return 0.0
         
         # Check if global resource exists and has enough
@@ -295,22 +300,31 @@ class RequirementResolverSystem(System):
         if global_resource is None:
             return 0.0
         
+        # Determine how much we can actually purchase
+        purchase_amount = amount
         if global_resource.current_amount < amount:
             # Try to fulfill as much as possible
-            available = global_resource.current_amount
-            if available > 0:
-                actual_cost = cost_per_unit * available
-                if wealth.money >= actual_cost:
-                    global_resource.consume(available)
-                    wealth.money -= actual_cost
-                    return available
+            purchase_amount = global_resource.current_amount
+            if purchase_amount <= 0:
+                return 0.0
+            
+            # Recalculate requirements for partial purchase
+            total_requirements = {}
+            for req_resource_id, cost_per_unit in source.requirements.items():
+                total_requirements[req_resource_id] = cost_per_unit * purchase_amount
+        
+        # Check again with adjusted amount
+        if not wealth.has_resources(total_requirements):
             return 0.0
         
-        # Fulfill full amount
-        global_resource.consume(amount)
-        wealth.money -= total_cost
+        # Consume payment resources from wealth
+        for req_resource_id, req_amount in total_requirements.items():
+            wealth.remove_resource(req_resource_id, req_amount)
         
-        return amount
+        # Consume purchased resource from world
+        global_resource.consume(purchase_amount)
+        
+        return purchase_amount
     
     def _fulfill_from_production(
         self,

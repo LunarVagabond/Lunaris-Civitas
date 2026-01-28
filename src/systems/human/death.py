@@ -280,22 +280,28 @@ class DeathSystem(System):
             f"Entity {entity.entity_id} died from {reason}{death_cause}{age_info}"
         )
         
-        # Return money to world supply
+        # Return all resources to world supply
         # NOTE: Future phases will add family inheritance, government policies, etc.
-        # For now, money returns to world supply when humans die
+        # For now, all resources return to world supply when humans die
         wealth = entity.get_component('Wealth')
-        if wealth and wealth.money > 0:
-            money_resource = world_state.get_resource('money')
-            if money_resource:
-                returned = money_resource.add(wealth.money)
+        if wealth and wealth.resources:
+            returned_resources = []
+            for resource_id, amount in wealth.resources.items():
+                if amount > 0:
+                    resource = world_state.get_resource(resource_id)
+                    if resource:
+                        returned = resource.add(amount)
+                        returned_resources.append(f"{resource_id}: {returned:.2f}")
+                    else:
+                        logger.warning(
+                            f"Entity {entity.entity_id} had {resource_id} ({amount:.2f}) but "
+                            f"resource not found in world state"
+                        )
+            
+            if returned_resources:
+                resources_str = ", ".join(returned_resources)
                 logger.info(
-                    f"Entity {entity.entity_id} money returned to world supply: "
-                    f"{wealth.money:.2f} (total world money: {money_resource.current_amount:.2f})"
-                )
-            else:
-                logger.warning(
-                    f"Entity {entity.entity_id} had money ({wealth.money:.2f}) but "
-                    f"money resource not found in world state"
+                    f"Entity {entity.entity_id} resources returned to world supply: {resources_str}"
                 )
         
         # Remove from world state

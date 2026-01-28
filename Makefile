@@ -142,13 +142,40 @@ docs-stop:
 	fi
 	@PID=$$(cat _running/pids/docs.pid); \
 	if ps -p $$PID > /dev/null 2>&1; then \
-		kill $$PID; \
-		rm _running/pids/docs.pid; \
+		kill $$PID 2>/dev/null || true; \
+		COUNT=0; \
+		while ps -p $$PID > /dev/null 2>&1 && [ $$COUNT -lt 10 ]; do \
+			sleep 0.5; \
+			COUNT=$$((COUNT + 1)); \
+		done; \
+		if ps -p $$PID > /dev/null 2>&1; then \
+			echo "Process did not terminate, forcing kill..."; \
+			kill -9 $$PID 2>/dev/null || true; \
+			sleep 0.5; \
+		fi; \
+		rm -f _running/pids/docs.pid; \
 		echo "Documentation server stopped (PID: $$PID)"; \
 	else \
 		echo "Process $$PID not found. Removing stale PID file."; \
 		rm _running/pids/docs.pid; \
 	fi
+
+docs-restart: $(VENV)
+	@PORT=$$(grep 'Serving on http://127\.0\.0\.1:' _running/logs/docs.log 2>/dev/null | sed -n 's/.*:\([0-9]\+\)\/.*/\1/p' | tail -1); \
+	if [ -z "$$PORT" ]; then \
+		echo "ERROR: Port not found in logs. Cannot restart."; \
+		echo "Check _running/logs/docs.log for details."; \
+		exit 1; \
+	fi; \
+	if [ -f _running/pids/docs.pid ]; then \
+		make docs-stop; \
+		sleep 1; \
+	fi; \
+	make docs-serve PORT=$$PORT; \
+	sleep 2; \
+	echo "Documentation server restarted (PID: $$(cat _running/pids/docs.pid), Port: $$PORT)"; \
+	echo "Logs: _running/logs/docs.log"; \
+	echo "Stop with: make docs-stop"
 
 modifier-add: $(VENV)
 	$(PYTHON) -m src.cli.add_modifier

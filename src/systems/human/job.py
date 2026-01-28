@@ -2,6 +2,10 @@
 
 Handles job assignment, resource production, salary payment, and employment management.
 Jobs can produce resources or just pay money. Employment limits are dynamic based on population.
+
+NOTE: Money generation is currently handled by ResourceReplenishmentSystem as a TEMPORARY solution.
+In Phase 6 (Economy & Markets), money will come from proper economic systems. For now, money
+replenishes monthly to prevent running out. If workers are not paid, they will quit their jobs.
 """
 
 from datetime import datetime, timedelta
@@ -93,15 +97,22 @@ class JobSystem(System):
     def init(self, world_state: Any, config: Dict[str, Any]) -> None:
         """Initialize the system with configuration.
         
+        Configuration is stored in world_state.config_snapshot and persisted to database.
+        On resume, config is loaded from database, ensuring job definitions persist across sessions.
+        This means job payment/cost configurations are preserved and not reloaded from new config files.
+        
         Args:
             world_state: World state instance
             config: System configuration containing job definitions and settings
+                   Config comes from world_state.config_snapshot (persisted in DB)
         """
         self.enabled = config.get('enabled', True)
         self.assignment_frequency = config.get('assignment_frequency', 'monthly')
         self.production_frequency = config.get('production_frequency', 'monthly')
         
-        # Load job definitions
+        # Load job definitions from config
+        # NOTE: Config is stored in world_state.config_snapshot and persisted to DB
+        # On resume, this config comes from database, not from config file
         jobs_config = config.get('jobs', {})
         for job_id, job_config in jobs_config.items():
             self.jobs[job_id] = self._parse_job_config(job_id, job_config)
@@ -138,13 +149,36 @@ class JobSystem(System):
         Returns:
             Parsed and validated job configuration
         """
+        # Parse payment configuration
+        # Supports both old format (salary) and new format (payment)
+        payment_config = job_config.get('payment', {})
+        if not payment_config and 'salary' in job_config:
+            # Backward compatibility - convert old salary format
+            payment_config = {'money': job_config['salary']}
+        
+        # Parse max payment cap
+        max_payment_cap = job_config.get('max_payment_cap', {})
+        if not max_payment_cap:
+            # Try old format
+            if 'max_salary_cap' in job_config:
+                max_payment_cap = {'money': job_config['max_salary_cap']}
+            elif 'max_salary' in job_config:
+                # Default to 1.3x max_salary if not specified
+                max_payment_cap = {'money': job_config.get('max_salary', 100.0) * 1.3}
+        
+        # Parse min payment (for salary calculation)
+        min_payment = job_config.get('min_payment', {})
+        if not min_payment and 'min_salary' in job_config:
+            # Backward compatibility
+            min_payment = {'money': job_config['min_salary']}
+        
         parsed = {
             'id': job_id,
             'name': job_config.get('name', job_id),
             'max_percentage': float(job_config.get('max_percentage', 10.0)),
-            'max_salary': float(job_config.get('max_salary', 100.0)),
-            'max_salary_cap': float(job_config.get('max_salary_cap', job_config.get('max_salary', 100.0) * 1.3)),
-            'min_salary': float(job_config.get('min_salary', 50.0)),
+            'payment': payment_config,  # {resource_id: amount} - payment per period
+            'max_payment_cap': max_payment_cap,  # {resource_id: max_amount} - max payment after raises
+            'min_payment': min_payment,  # {resource_id: min_amount} - minimum payment
             'min_age': int(job_config.get('min_age', self.min_work_age)),
             'required_skill': job_config.get('required_skill', 'general'),
             'skill_weight': float(job_config.get('skill_weight', 0.5)),
@@ -368,6 +402,9 @@ class JobSystem(System):
     ) -> None:
         """Hire an entity for a job.
         
+        Calculates payment_resources based on job config, skills, and charisma.
+        Payment can be in any resource type (money, crypto, food, etc.)
+        
         Args:
             world_state: World state instance
             current_datetime: Current simulation datetime
@@ -375,13 +412,34 @@ class JobSystem(System):
             job_id: Job identifier
             job_config: Job configuration
         """
-        # Calculate salary based on skills and charisma
+        # Get base payment from config (payment: {resource_id: amount})
+        base_payment = job_config.get('payment', {})
+        if not isinstance(base_payment, dict):
+            base_payment = {}
+        base_payment = base_payment.copy()
+        
+        min_payment = job_config.get('min_payment', {})
+        if not isinstance(min_payment, dict):
+            min_payment = {}
+        min_payment = min_payment.copy()
+        
+        max_payment_cap = job_config.get('max_payment_cap', {})
+        if not isinstance(max_payment_cap, dict):
+            max_payment_cap = {}
+        max_payment_cap = max_payment_cap.copy()
+        
+        # If no payment config, default to empty (shouldn't happen, but handle gracefully)
+        if not base_payment:
+            logger.warning(f"Job {job_id} has no payment configuration")
+            base_payment = {}
+        
+        # Calculate payment based on skills and charisma
         skills = entity.get_component('Skills')
-        base_salary = world_state.rng.uniform(job_config['min_salary'], job_config['max_salary'])
+        payment_multiplier = 1.0
         
         if skills:
-            # Adjust salary based on skills match
-            required_skill = job_config['required_skill']
+            # Adjust payment based on skills match
+            required_skill = job_config.get('required_skill', 'general')
             skill_value = skills.get_job_skill(required_skill, 0.0)
             charisma = skills.charisma
             
@@ -390,11 +448,21 @@ class JobSystem(System):
             # Charisma bonus: up to 10% increase
             charisma_bonus = charisma * 0.1
             
-            salary_multiplier = 1.0 + skill_bonus + charisma_bonus
-            base_salary *= salary_multiplier
+            payment_multiplier = 1.0 + skill_bonus + charisma_bonus
         
-        # Cap at max_salary
-        final_salary = min(base_salary, job_config['max_salary'])
+        # Calculate final payment for each resource type
+        final_payment = {}
+        for resource_id, base_amount in base_payment.items():
+            # Start with base amount, apply multiplier
+            calculated_amount = base_amount * payment_multiplier
+            
+            # Apply min/max constraints if specified
+            if resource_id in min_payment:
+                calculated_amount = max(calculated_amount, min_payment[resource_id])
+            if resource_id in max_payment_cap:
+                calculated_amount = min(calculated_amount, max_payment_cap[resource_id])
+            
+            final_payment[resource_id] = calculated_amount
         
         # Create or update employment component
         employment = entity.get_component('Employment')
@@ -404,14 +472,16 @@ class JobSystem(System):
         
         employment.job_type = job_id
         employment.employer_id = None  # Self-employed for now
-        employment.salary = final_salary
+        employment.payment_resources = final_payment
         employment.hire_date = current_datetime
         employment.last_raise_date = None
-        employment.max_salary_cap = job_config['max_salary_cap']
+        employment.max_payment_cap = max_payment_cap
         
+        # Format payment string for logging
+        payment_str = ", ".join([f"{rid}: {amt:.2f}" for rid, amt in final_payment.items()])
         logger.info(
             f"Entity {entity.entity_id} hired as {job_config['name']} "
-            f"(salary: {final_salary:.2f})"
+            f"(payment: {payment_str})"
         )
     
     def _count_workers(self, world_state: Any, job_id: str) -> int:
@@ -468,23 +538,19 @@ class JobSystem(System):
                 )
     
     def _pay_salaries(self, world_state: Any, current_datetime: datetime) -> None:
-        """Pay salaries to workers.
+        """Pay workers with their configured payment resources.
         
+        Payments can be in any resource type (money, crypto, food, etc.) as configured per job.
         Salaries are paid when production happens (for production jobs) or monthly (for service jobs).
         
         Args:
             world_state: World state instance
             current_datetime: Current simulation datetime
         """
-        # Get money resource
-        money_resource = world_state.get_resource('money')
-        if not money_resource:
-            logger.warning("Money resource not found, cannot pay salaries")
-            return
-        
         # Pay salaries for all employed workers
-        total_paid = 0.0
+        total_paid_by_resource: Dict[str, float] = {}  # Track total paid per resource type
         paid_count = 0
+        unpaid_entities = []  # Track entities who didn't get paid
         
         for entity in world_state.get_all_entities().values():
             employment = entity.get_component('Employment')
@@ -508,32 +574,85 @@ class JobSystem(System):
                 if not _should_run_on_frequency('monthly', current_datetime):
                     continue
             
-            # Pay salary
-            salary = employment.salary
-            if salary > 0:
-                # Check if world has enough money
-                if money_resource.current_amount >= salary:
-                    money_resource.consume(salary)
+            # Pay in all configured payment resources
+            payment_resources = employment.payment_resources
+            if not payment_resources:
+                continue  # No payment configured
+            
+            # Check if world has enough of all required payment resources
+            can_pay = True
+            missing_resources = []
+            
+            for resource_id, amount in payment_resources.items():
+                resource = world_state.get_resource(resource_id)
+                if not resource:
+                    can_pay = False
+                    missing_resources.append(f"{resource_id} (not found)")
+                    break
+                if resource.current_amount < amount:
+                    can_pay = False
+                    missing_resources.append(
+                        f"{resource_id} (need {amount:.2f}, have {resource.current_amount:.2f})"
+                    )
+                    break
+            
+            if can_pay:
+                # Pay in all resources
+                for resource_id, amount in payment_resources.items():
+                    resource = world_state.get_resource(resource_id)
+                    resource.consume(amount)
                     
                     # Add to entity's wealth
                     wealth = entity.get_component('Wealth')
                     if not wealth:
                         wealth = WealthComponent()
                         entity.add_component(wealth)
-                    wealth.add_money(salary)
+                    wealth.add_resource(resource_id, amount)
                     
-                    total_paid += salary
-                    paid_count += 1
-                else:
-                    logger.warning(
-                        f"Insufficient world money to pay salary {salary:.2f} to entity {entity.entity_id}. "
-                        f"World money: {money_resource.current_amount:.2f}"
-                    )
+                    # Track totals
+                    total_paid_by_resource[resource_id] = total_paid_by_resource.get(resource_id, 0.0) + amount
+                
+                paid_count += 1
+            else:
+                # Employee not paid - they will quit
+                # NOTE: This is a real-world problem that can happen
+                # In Phase 6, proper economic systems will prevent this
+                payment_str = ", ".join([f"{rid}: {amt:.2f}" for rid, amt in payment_resources.items()])
+                missing_str = ", ".join(missing_resources)
+                logger.warning(
+                    f"Insufficient world resources to pay {payment_str} to entity {entity.entity_id}. "
+                    f"Missing: {missing_str} - Employee will quit"
+                )
+                unpaid_entities.append((entity, employment, job_config))
+        
+        # Process unpaid workers - they quit
+        for entity, employment, job_config in unpaid_entities:
+            job_id = employment.job_type
+            job_name = job_config.get('name', job_id)
+            
+            # Remove employment (they quit due to not being paid)
+            employment.job_type = None
+            employment.employer_id = None
+            # Keep payment_resources, hire_date, etc. for potential re-hiring reference
+            
+            logger.info(
+                f"Entity {entity.entity_id} quit job '{job_name}' "
+                f"(reason: not paid - insufficient world resources)"
+            )
         
         if paid_count > 0:
+            payment_summary = ", ".join([
+                f"{rid}: {amt:.2f}" for rid, amt in total_paid_by_resource.items()
+            ])
             logger.debug(
-                f"Paid salaries to {paid_count} workers: total {total_paid:.2f} "
-                f"(remaining world money: {money_resource.current_amount:.2f})"
+                f"Paid {paid_count} workers: {payment_summary}"
+            )
+        
+        if unpaid_entities:
+            logger.warning(
+                f"{len(unpaid_entities)} workers quit due to unpaid salaries. "
+                f"This should not happen with proper resource generation. "
+                f"Check resource replenishment rates."
             )
     
     def _review_salaries(self, world_state: Any, current_datetime: datetime) -> None:
@@ -584,7 +703,10 @@ class JobSystem(System):
         employment: EmploymentComponent,
         current_datetime: datetime
     ) -> None:
-        """Give a salary raise to an entity.
+        """Give a payment raise to an entity.
+        
+        Increases payment for all resource types in payment_resources by the raise percentage,
+        up to max_payment_cap for each resource.
         
         Args:
             world_state: World state instance
@@ -592,26 +714,47 @@ class JobSystem(System):
             employment: Employment component
             current_datetime: Current simulation datetime
         """
-        if employment.salary >= employment.max_salary_cap:
-            return  # Already at cap
-        
-        # Calculate raise amount (2-5% of current salary)
+        # Calculate raise amount (2-5% of current payment)
         raise_percent = world_state.rng.uniform(
             self.raise_amount_range[0],
             self.raise_amount_range[1]
         )
-        raise_amount = employment.salary * raise_percent
         
-        new_salary = min(employment.salary + raise_amount, employment.max_salary_cap)
-        old_salary = employment.salary
-        employment.salary = new_salary
-        employment.last_raise_date = current_datetime
+        # Apply raise to all payment resources
+        old_payment = employment.payment_resources.copy()
+        new_payment = {}
+        raise_details = []
         
-        logger.info(
-            f"Entity {entity.entity_id} received salary raise: "
-            f"{old_salary:.2f} → {new_salary:.2f} "
-            f"(+{raise_amount:.2f}, {raise_percent*100:.1f}%)"
-        )
+        for resource_id, current_amount in employment.payment_resources.items():
+            # Check if already at cap
+            max_cap = employment.max_payment_cap.get(resource_id)
+            if max_cap is not None and current_amount >= max_cap:
+                new_payment[resource_id] = current_amount
+                continue  # Already at cap for this resource
+            
+            # Calculate raise
+            raise_amount = current_amount * raise_percent
+            new_amount = current_amount + raise_amount
+            
+            # Cap at max_payment_cap if specified
+            if max_cap is not None:
+                new_amount = min(new_amount, max_cap)
+            
+            new_payment[resource_id] = new_amount
+            raise_details.append(
+                f"{resource_id}: {current_amount:.2f} → {new_amount:.2f} "
+                f"(+{raise_amount:.2f}, {raise_percent*100:.1f}%)"
+            )
+        
+        # Only update if there were actual raises
+        if raise_details:
+            employment.payment_resources = new_payment
+            employment.last_raise_date = current_datetime
+            
+            raise_str = ", ".join(raise_details)
+            logger.info(
+                f"Entity {entity.entity_id} received payment raise: {raise_str}"
+            )
     
     def _check_job_loss(self, world_state: Any, current_datetime: datetime) -> None:
         """Check for job loss (firing, quitting, layoffs).

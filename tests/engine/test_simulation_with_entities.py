@@ -177,7 +177,7 @@ class TestSimulationWithEntities:
         
         # Create entity with wealth
         entity = sim.world_state.create_entity()
-        entity.add_component(WealthComponent(money=100.0))
+        entity.add_component(WealthComponent(resources={'money': 100.0}))
         
         # Get requirement resolver
         resolver = sim.world_state.get_system('RequirementResolver')

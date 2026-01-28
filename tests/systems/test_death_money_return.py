@@ -32,7 +32,7 @@ def test_death_system_returns_money():
     health = HealthComponent(health=0.0)  # Dead
     entity.add_component(health)
     
-    wealth = WealthComponent(money=500.0)
+    wealth = WealthComponent(resources={'money': 500.0})
     entity.add_component(wealth)
     
     config = {'enabled': True}
@@ -66,7 +66,7 @@ def test_death_system_handles_no_money_resource():
     health = HealthComponent(health=0.0)  # Dead
     entity.add_component(health)
     
-    wealth = WealthComponent(money=500.0)
+    wealth = WealthComponent(resources={'money': 500.0})
     entity.add_component(wealth)
     
     config = {'enabled': True}

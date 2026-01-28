@@ -46,8 +46,9 @@ Components are data containers attached to entities. Available components includ
 - **PressureComponent**: Tracks unmet resource requirements
 - **HealthComponent**: Tracks health status
 - **AgeComponent**: Tracks age and birth date
-- **WealthComponent**: Stores money/resources
-- **EmploymentComponent**: Stores job information
+- **WealthComponent**: Stores resources (money, crypto, bananas, etc.) - supports multiple resource types
+- **EmploymentComponent**: Stores job information, payment resources, and salary caps
+- **SkillsComponent**: Core traits (charisma, intelligence, strength, creativity, work_ethic) and job-specific skills
 - **HouseholdComponent**: Links entity to household
 
 ### Requirement Resolution
@@ -309,9 +310,67 @@ systems_config:
       # No max_age - outliers can survive past 100 (very rare)
 ```
 
+### JobSystem
+
+Manages job assignment, resource production, and payment distribution. Jobs can pay in any resource type (money, crypto, bananas, etc.), and payment can be multiple resource types simultaneously.
+
+**Features:**
+- Job assignment based on skills, charisma, age, and dynamic hiring chance
+- Resource production based on job type and worker count
+- Payment in any resource type (fully configurable)
+- Salary increases (yearly and rare 6-month raises) up to max payment cap
+- Job loss mechanism (firing, quitting, layoffs)
+- Unpaid workers automatically quit (real-world consequence)
+- Percentage-based job limits (e.g., max 10% of population can be farmers)
+- Age requirements per job type
+
+**Configuration:**
+```yaml
+systems_config:
+  JobSystem:
+    enabled: true
+    assignment_frequency: monthly  # When to assign jobs
+    production_frequency: monthly  # When production jobs produce
+    min_work_age: 15  # Global minimum
+    max_work_age: 70  # Global maximum
+    base_hiring_chance: 0.3  # Base chance per month
+    hiring_chance_multiplier: 0.5  # Multiplier for dynamic hiring
+    yearly_raise_probability: 0.7  # Chance of yearly raise
+    six_month_raise_probability: 0.05  # Rare 6-month raise
+    raise_amount_range: [0.02, 0.05]  # 2-5% increase
+    jobs:
+      farmer:
+        name: Farmer
+        max_percentage: 10.0  # Max 10% of population
+        payment:
+          money: 100.0  # Can pay in multiple resources
+          # crypto: 2.0  # Optional additional payment
+        max_payment_cap:
+          money: 130.0  # Max after raises
+        min_payment:
+          money: 50.0  # Minimum payment
+        min_age: 16
+        production:
+          resource_id: food
+          rate: 50.0  # Per worker per production period
+          frequency: monthly
+        required_skill: farming
+        skill_weight: 0.7
+        charisma_weight: 0.1
+        job_type: production
+```
+
+**Payment Examples:**
+- Single resource: `payment: {money: 100.0}`
+- Multiple resources: `payment: {money: 80.0, crypto: 2.0}`
+- Integer-based resources: `payment: {bananas: 10.0}`
+
 ### RequirementResolverSystem
 
 Resolves resource requirements by trying multiple sources in priority order. Handles contextual requirements where the same need can be met through different paths (inventory, household, market, production).
+
+**Multi-Resource Costs:**
+Market sources can require multiple resource types for payment. For example, food might cost both money and crypto, or bananas and money.
 
 **Configuration:**
 ```yaml
@@ -340,6 +399,7 @@ systems_config:
             has_component: "Wealth"
           requirements:
             money: 5.0  # Per unit
+            crypto: 1.0  # Can require multiple resources
           fulfillment_method: "purchase_from_market"
         - source_id: production_farmer
           source_type: production
@@ -355,8 +415,13 @@ systems_config:
 **Source Types:**
 - `inventory`: Personal inventory (no requirement, already owned)
 - `household`: Shared household resources (no requirement, shared)
-- `market`: Purchase from market (requires money)
+- `market`: Purchase from market (can require multiple resource types: money, crypto, bananas, etc.)
 - `production`: Produce through job (requires inputs like seeds)
+
+**Multi-Resource Cost Examples:**
+- Single resource: `requirements: {money: 5.0}`
+- Multiple resources: `requirements: {money: 5.0, crypto: 1.0}`
+- Integer-based resources: `requirements: {bananas: 3.0}`
 
 **Component Registration Flow:**
 
@@ -393,6 +458,26 @@ flowchart TD
     Fulfill -->|pressure| Health
     Health -->|health degradation| Death
     Death -->|removes entities| End[Entity Removed]
+```
+
+**Job System Flow:**
+
+```mermaid
+flowchart TD
+    JobSystem[JobSystem]
+    Assign[Job Assignment]
+    Produce[Resource Production]
+    Pay[Payment Distribution]
+    Raise[Salary Reviews]
+    Loss[Job Loss Check]
+    
+    JobSystem -->|monthly| Assign
+    Assign -->|skills/charisma| Produce
+    Produce -->|worker count| Pay
+    Pay -->|insufficient| Quit[Workers Quit]
+    Pay -->|sufficient| Raise
+    Raise -->|yearly/6-month| Loss
+    Loss -->|probabilistic| End[Job Loss]
 ```
 
 History data can be exported to CSV using the `make export-resources` command or `python -m src.cli.export_resources`.

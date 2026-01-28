@@ -64,9 +64,13 @@ resources:
   - id: money
     name: Money
     initial_amount: 10000.0
-    finite: true  # No natural generation - money comes from jobs only
-    # NOTE: This architecture may change in Phase 6 when markets are added
-    # Money may need to be handled differently when we have markets, wages, and economic systems
+    finite: false  # TEMPORARY: Money generation added to prevent running out
+    replenishment_rate: 5000.0  # TEMPORARY: 5000 per month to prevent money shortage
+    replenishment_frequency: monthly  # TEMPORARY: Monthly money generation
+    # NOTE: This is a TEMPORARY solution until Phase 6 (Economy & Markets) is implemented
+    # In Phase 6, money will come from markets, wages, and economic systems properly
+    # For now, this prevents the simulation from breaking when money runs out
+    # TODO: Remove this when proper economic system is in place
 
 systems:
   - ResourceProductionSystem
@@ -268,9 +272,12 @@ systems_config:
       farmer:
         name: Farmer
         max_percentage: 10.0  # Max 10% of population
-        max_salary: 100.0  # Initial offer cap (per production period)
-        max_salary_cap: 130.0  # Maximum possible salary (after raises)
-        min_salary: 50.0
+        payment:
+          money: 100.0  # Payment per production period (can be multiple resources)
+        max_payment_cap:
+          money: 130.0  # Maximum possible payment after raises
+        min_payment:
+          money: 50.0  # Minimum payment
         min_age: 16  # Minimum age for this job
         production:
           resource_id: food
@@ -284,9 +291,12 @@ systems_config:
       miner:
         name: Miner
         max_percentage: 5.0
-        max_salary: 120.0
-        max_salary_cap: 160.0
-        min_salary: 60.0
+        payment:
+          money: 120.0
+        max_payment_cap:
+          money: 160.0
+        min_payment:
+          money: 60.0
         min_age: 18  # Mining requires adult age
         production:
           resource_id: raw_materials
@@ -300,9 +310,12 @@ systems_config:
       teacher:
         name: Teacher
         max_percentage: 3.0
-        max_salary: 150.0
-        max_salary_cap: 200.0
-        min_salary: 80.0
+        payment:
+          money: 150.0
+        max_payment_cap:
+          money: 200.0
+        min_payment:
+          money: 80.0
         min_age: 21  # Professional job requires adult age
         # No production - service job, just pays money
         required_skill: teaching
@@ -313,9 +326,12 @@ systems_config:
       burger_flipper:
         name: Fast Food Worker
         max_percentage: 8.0
-        max_salary: 40.0
-        max_salary_cap: 55.0
-        min_salary: 20.0
+        payment:
+          money: 40.0
+        max_payment_cap:
+          money: 55.0
+        min_payment:
+          money: 20.0
         min_age: 15  # Can start younger for low-skill jobs
         # No production - service job
         required_skill: service

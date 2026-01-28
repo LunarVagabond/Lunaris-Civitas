@@ -1,5 +1,5 @@
 site_name: Lunaris Civitas
-site_description: Zero-player simulation engine documentation
+site_description: Documentation for Lunaris Civitas - A simulation engine for modeling human societies, resources, and complex systems over time
 
 theme:
   name: material

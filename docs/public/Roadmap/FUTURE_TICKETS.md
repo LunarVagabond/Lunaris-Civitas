@@ -62,6 +62,14 @@ This document tracks planned features, improvements, and technical debt for futu
 - Production scales with number of workers
 - Addresses current food scarcity crisis
 
+### Temporary Solutions (Phase 3)
+- **Money Generation**: Money resource currently replenishes monthly (5000/month) to prevent running out
+  - This is TEMPORARY until Phase 6 (Economy & Markets) implements proper economic systems
+  - TODO: Remove money replenishment when proper economic system is in place
+- **Unpaid Worker Quitting**: If workers are not paid (insufficient world money), they quit their jobs
+  - This is a real-world problem that can happen
+  - In Phase 6, proper economic systems will prevent money shortages
+
 ---
 
 ## Phase 4: Reproduction System

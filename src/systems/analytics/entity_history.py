@@ -245,7 +245,12 @@ class EntityHistorySystem(System):
             # Wealth component
             wealth = entity.get_component('Wealth')
             if wealth:
-                wealth_values.append(wealth.money)
+                # Sum all resources in wealth (for backward compat, prefer money if available)
+                if 'money' in wealth.resources:
+                    wealth_values.append(wealth.resources['money'])
+                elif wealth.resources:
+                    # Sum all resources if no money
+                    wealth_values.append(sum(wealth.resources.values()))
             
             # Employment component
             employment = entity.get_component('Employment')

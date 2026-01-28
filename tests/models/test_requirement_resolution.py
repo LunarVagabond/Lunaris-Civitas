@@ -134,7 +134,7 @@ class TestRequirementSource:
     def test_source_can_fulfill_from_market(self):
         """Test fulfillment check from market with money."""
         entity = Entity()
-        wealth = WealthComponent(money=100.0)
+        wealth = WealthComponent(resources={'money': 100.0})
         entity.add_component(wealth)
         
         source = RequirementSource(
@@ -159,7 +159,7 @@ class TestRequirementSource:
     def test_source_cannot_fulfill_insufficient_money(self):
         """Test fulfillment check fails with insufficient money."""
         entity = Entity()
-        wealth = WealthComponent(money=10.0)
+        wealth = WealthComponent(resources={'money': 10.0})
         entity.add_component(wealth)
         
         source = RequirementSource(

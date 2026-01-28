@@ -852,7 +852,9 @@ class Database:
         job_distribution: Dict[str, int],
         avg_salary_by_job: Dict[str, float],
         total_salary_paid: float,
-        job_openings: Dict[str, int]
+        job_openings: Dict[str, int],
+        avg_payment_by_job: Optional[Dict[str, Dict[str, float]]] = None,
+        total_payment_by_resource: Optional[Dict[str, float]] = None
     ) -> None:
         """Save job history record to database.
         
@@ -862,12 +864,22 @@ class Database:
             total_employed: Total number of employed entities
             employment_rate: Employment rate as percentage (0-100)
             job_distribution: Dictionary mapping job_type -> count
-            avg_salary_by_job: Dictionary mapping job_type -> average salary
-            total_salary_paid: Total salary paid across all jobs
+            avg_salary_by_job: Dictionary mapping job_type -> average salary (backward compat)
+            total_salary_paid: Total salary paid across all jobs (backward compat)
             job_openings: Dictionary mapping job_type -> open slots
+            avg_payment_by_job: Dictionary mapping job_type -> {resource_id: avg_amount} (new format)
+            total_payment_by_resource: Dictionary mapping resource_id -> total (new format)
         """
         import json
         cursor = self._connection.cursor()
+        
+        # Store new format in avg_salary_by_job JSON for now (can add new columns later if needed)
+        # For now, we'll store the full payment data in the JSON
+        payment_data = {
+            'avg_payment_by_job': avg_payment_by_job or {},
+            'total_payment_by_resource': total_payment_by_resource or {}
+        }
+        
         cursor.execute("""
             INSERT INTO job_history 
             (timestamp, tick, total_employed, employment_rate, job_distribution, 
@@ -879,7 +891,7 @@ class Database:
             total_employed,
             employment_rate,
             json.dumps(job_distribution),
-            json.dumps(avg_salary_by_job),
+            json.dumps(payment_data),  # Store full payment data in JSON
             total_salary_paid,
             json.dumps(job_openings)
         ))
@@ -938,7 +950,22 @@ class Database:
             if 'job_distribution' in record and isinstance(record['job_distribution'], str):
                 record['job_distribution'] = json.loads(record['job_distribution'])
             if 'avg_salary_by_job' in record and isinstance(record['avg_salary_by_job'], str):
-                record['avg_salary_by_job'] = json.loads(record['avg_salary_by_job'])
+                payment_data = json.loads(record['avg_salary_by_job'])
+                # Handle both old format (just salary dict) and new format (payment_data dict)
+                if isinstance(payment_data, dict) and 'avg_payment_by_job' in payment_data:
+                    # New format
+                    record['avg_payment_by_job'] = payment_data.get('avg_payment_by_job', {})
+                    record['total_payment_by_resource'] = payment_data.get('total_payment_by_resource', {})
+                    # Extract backward compat avg_salary_by_job (money only)
+                    record['avg_salary_by_job'] = {
+                        job: payments.get('money', 0.0) 
+                        for job, payments in payment_data.get('avg_payment_by_job', {}).items()
+                    }
+                else:
+                    # Old format (just salary dict)
+                    record['avg_salary_by_job'] = payment_data
+                    record['avg_payment_by_job'] = {job: {'money': amt} for job, amt in payment_data.items()}
+                    record['total_payment_by_resource'] = {}
             if 'job_openings' in record and isinstance(record['job_openings'], str):
                 record['job_openings'] = json.loads(record['job_openings'])
             result.append(record)

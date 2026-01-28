@@ -89,7 +89,7 @@ def test_entity_history_system_calculates_metrics():
         entity2.add_component(NeedsComponent(hunger=0.7, thirst=0.5, rest=0.4))
         entity2.add_component(HealthComponent(health=0.6))
         entity2.add_component(AgeComponent(birth_date=datetime(2020, 1, 1), current_date=datetime(2024, 1, 1)))
-        entity2.add_component(WealthComponent(money=100.0))
+        entity2.add_component(WealthComponent(resources={'money': 100.0}))
         entity2.add_component(EmploymentComponent(job_type="farmer"))
         
         entity3 = world_state.create_entity(entity_id="entity-3")

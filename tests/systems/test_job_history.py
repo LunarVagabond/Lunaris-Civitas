@@ -43,9 +43,9 @@ def test_job_history_system_saves_history():
             entity = world_state.create_entity()
             employment = EmploymentComponent(
                 job_type='farmer',
-                salary=100.0 + i * 10.0,
+                payment_resources={'money': 100.0 + i * 10.0},
                 hire_date=datetime(2024, 1, 1, 0, 0, 0),
-                max_salary_cap=130.0
+                max_payment_cap={'money': 130.0}
             )
             entity.add_component(employment)
         
@@ -97,7 +97,10 @@ def test_job_history_system_respects_frequency():
         )
         
         entity = world_state.create_entity()
-        entity.add_component(EmploymentComponent(job_type='farmer', salary=100.0))
+        entity.add_component(EmploymentComponent(
+            job_type='farmer',
+            payment_resources={'money': 100.0}
+        ))
         
         config = {
             'enabled': True,

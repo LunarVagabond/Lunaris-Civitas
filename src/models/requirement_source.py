@@ -136,12 +136,13 @@ class RequirementSource:
             total_required = req_amount * amount
             
             if self.source_type == 'market':
-                # Market requires money from Wealth component
+                # Market requires resources from Wealth component (money, crypto, or any resource type)
                 wealth = entity.get_component('Wealth')
                 if wealth is None:
                     return False, f"No Wealth component for market purchase"
-                if not hasattr(wealth, 'money') or wealth.money < total_required:
-                    return False, f"Insufficient money: need {total_required}, have {getattr(wealth, 'money', 0.0)}"
+                if not wealth.has_resource(req_resource_id, total_required):
+                    available = wealth.get_amount(req_resource_id)
+                    return False, f"Insufficient {req_resource_id}: need {total_required}, have {available}"
             
             elif self.source_type == 'production':
                 # Production requires inputs from Inventory
@@ -149,6 +150,7 @@ class RequirementSource:
                 if inventory is None:
                     return False, f"No Inventory component for production"
                 if not inventory.has_resource(req_resource_id, total_required):
-                    return False, f"Insufficient {req_resource_id}: need {total_required}, have {inventory.get_amount(req_resource_id)}"
+                    available = inventory.get_amount(req_resource_id)
+                    return False, f"Insufficient {req_resource_id}: need {total_required}, have {available}"
         
         return True, None

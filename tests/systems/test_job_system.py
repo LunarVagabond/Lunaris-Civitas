@@ -45,9 +45,9 @@ def test_job_system_config_loading():
             'farmer': {
                 'name': 'Farmer',
                 'max_percentage': 10.0,
-                'max_salary': 100.0,
-                'max_salary_cap': 130.0,
-                'min_salary': 50.0,
+                'payment': {'money': 100.0},
+                'max_payment_cap': {'money': 130.0},
+                'min_payment': {'money': 50.0},
                 'min_age': 16,
                 'production': {
                     'resource_id': 'food',
@@ -131,9 +131,9 @@ def test_job_system_assigns_jobs():
             'farmer': {
                 'name': 'Farmer',
                 'max_percentage': 10.0,  # 10% of 10 = 1 worker
-                'max_salary': 100.0,
-                'max_salary_cap': 130.0,
-                'min_salary': 50.0,
+                'payment': {'money': 100.0},
+                'max_payment_cap': {'money': 130.0},
+                'min_payment': {'money': 50.0},
                 'min_age': 16,
                 'production': {
                     'resource_id': 'food',
@@ -166,7 +166,9 @@ def test_job_system_assigns_jobs():
     assert employment is not None
     assert employment.is_employed()
     assert employment.job_type == 'farmer'
-    assert employment.salary > 0
+    assert employment.payment_resources
+    assert 'money' in employment.payment_resources
+    assert employment.payment_resources['money'] > 0
     assert employment.hire_date == datetime(2024, 1, 1, 0, 0, 0)
 
 
@@ -201,9 +203,9 @@ def test_job_system_respects_age_requirements():
             'farmer': {
                 'name': 'Farmer',
                 'max_percentage': 10.0,
-                'max_salary': 100.0,
-                'max_salary_cap': 130.0,
-                'min_salary': 50.0,
+                'payment': {'money': 100.0},
+                'max_payment_cap': {'money': 130.0},
+                'min_payment': {'money': 50.0},
                 'min_age': 16,  # Requires 16+
                 'production': {
                     'resource_id': 'food',
@@ -251,9 +253,9 @@ def test_job_system_produces_resources():
     ))
     employment = EmploymentComponent(
         job_type='farmer',
-        salary=100.0,
+        payment_resources={'money': 100.0},
         hire_date=datetime(2024, 1, 1, 0, 0, 0),
-        max_salary_cap=130.0
+        max_payment_cap={'money': 130.0}
     )
     entity.add_component(employment)
     
@@ -308,9 +310,9 @@ def test_job_system_pays_salaries():
     ))
     employment = EmploymentComponent(
         job_type='teacher',
-        salary=150.0,
+        payment_resources={'money': 150.0},
         hire_date=datetime(2024, 1, 1, 0, 0, 0),
-        max_salary_cap=200.0
+        max_payment_cap={'money': 200.0}
     )
     entity.add_component(employment)
     
@@ -332,15 +334,15 @@ def test_job_system_pays_salaries():
     if not wealth:
         wealth = WealthComponent()
         entity.add_component(wealth)
-    initial_wealth = wealth.money
+    initial_wealth = wealth.get_amount('money')
     
     # Run salary payment (monthly - 1st of month)
     system.on_tick(world_state, datetime(2024, 1, 1, 0, 0, 0))
     
     # World money should decrease, entity wealth should increase
     assert money_resource.current_amount < initial_money
-    assert wealth.money > initial_wealth
-    assert wealth.money == initial_wealth + 150.0  # Salary amount
+    assert wealth.get_amount('money') > initial_wealth
+    assert wealth.get_amount('money') == initial_wealth + 150.0  # Payment amount
 
 
 def test_job_system_dynamic_limits():
@@ -375,9 +377,9 @@ def test_job_system_dynamic_limits():
             'farmer': {
                 'name': 'Farmer',
                 'max_percentage': 10.0,  # 10% of population
-                'max_salary': 100.0,
-                'max_salary_cap': 130.0,
-                'min_salary': 50.0,
+                'payment': {'money': 100.0},
+                'max_payment_cap': {'money': 130.0},
+                'min_payment': {'money': 50.0},
                 'min_age': 16,
                 'production': {
                     'resource_id': 'food',

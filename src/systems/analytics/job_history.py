@@ -117,9 +117,11 @@ class JobHistorySystem(System):
                     total_employed=stats['total_employed'],
                     employment_rate=stats['employment_rate'],
                     job_distribution=stats['job_distribution'],
-                    avg_salary_by_job=stats['avg_salary_by_job'],
+                    avg_salary_by_job=stats['avg_salary_by_job'],  # Backward compat format
                     total_salary_paid=stats['total_salary_paid'],
-                    job_openings=stats['job_openings']
+                    job_openings=stats['job_openings'],
+                    avg_payment_by_job=stats.get('avg_payment_by_job', {}),  # New format
+                    total_payment_by_resource=stats.get('total_payment_by_resource', {})  # New format
                 )
             
             self.last_save = current_datetime
@@ -155,8 +157,8 @@ class JobHistorySystem(System):
         total_population = len(all_entities)
         total_employed = 0
         job_distribution: Dict[str, int] = {}
-        salary_by_job: Dict[str, List[float]] = {}
-        total_salary_paid = 0.0
+        payment_by_job: Dict[str, Dict[str, List[float]]] = {}  # job_type -> {resource_id: [amounts]}
+        total_payment_by_resource: Dict[str, float] = {}  # resource_id -> total
         
         # Get JobSystem to access job definitions
         job_system = world_state.get_system('JobSystem')
@@ -173,18 +175,27 @@ class JobHistorySystem(System):
             # Count by job type
             job_distribution[job_type] = job_distribution.get(job_type, 0) + 1
             
-            # Track salaries
-            if employment.salary > 0:
-                if job_type not in salary_by_job:
-                    salary_by_job[job_type] = []
-                salary_by_job[job_type].append(employment.salary)
-                total_salary_paid += employment.salary
+            # Track payments by resource type
+            if employment.payment_resources:
+                if job_type not in payment_by_job:
+                    payment_by_job[job_type] = {}
+                
+                for resource_id, amount in employment.payment_resources.items():
+                    if resource_id not in payment_by_job[job_type]:
+                        payment_by_job[job_type][resource_id] = []
+                    payment_by_job[job_type][resource_id].append(amount)
+                    total_payment_by_resource[resource_id] = total_payment_by_resource.get(resource_id, 0.0) + amount
         
-        # Calculate average salary per job type
-        avg_salary_by_job: Dict[str, float] = {}
-        for job_type, salaries in salary_by_job.items():
-            if salaries:
-                avg_salary_by_job[job_type] = sum(salaries) / len(salaries)
+        # Calculate average payment per job type and resource
+        avg_payment_by_job: Dict[str, Dict[str, float]] = {}
+        for job_type, payments_by_resource in payment_by_job.items():
+            avg_payment_by_job[job_type] = {}
+            for resource_id, amounts in payments_by_resource.items():
+                if amounts:
+                    avg_payment_by_job[job_type][resource_id] = sum(amounts) / len(amounts)
+        
+        # For backward compatibility, also calculate total_salary_paid (sum of all payments)
+        total_salary_paid = sum(total_payment_by_resource.values())
         
         # Calculate job openings (if JobSystem is available)
         if job_system and hasattr(job_system, 'jobs'):
@@ -201,7 +212,9 @@ class JobHistorySystem(System):
             'total_employed': total_employed,
             'employment_rate': employment_rate,
             'job_distribution': job_distribution,
-            'avg_salary_by_job': avg_salary_by_job,
-            'total_salary_paid': total_salary_paid,
+            'avg_payment_by_job': avg_payment_by_job,  # New format: job_type -> {resource_id: avg_amount}
+            'avg_salary_by_job': {job: payments.get('money', 0.0) for job, payments in avg_payment_by_job.items()},  # Backward compat
+            'total_payment_by_resource': total_payment_by_resource,  # New: resource_id -> total
+            'total_salary_paid': total_salary_paid,  # Backward compat: sum of all payments
             'job_openings': job_openings
         }

@@ -719,6 +719,45 @@ class Simulation:
         old_percent = (old_count / total_population * 100) if total_population > 0 else 0.0
         at_risk_percent = (at_risk_count / total_population * 100) if total_population > 0 else 0.0
         
+        # Calculate employment statistics
+        employed_count = 0
+        job_distribution = {}  # job_type -> count
+        payment_by_job: Dict[str, Dict[str, List[float]]] = {}  # job_type -> {resource_id: [amounts]}
+        total_payment_by_resource: Dict[str, float] = {}  # resource_id -> total
+        
+        for entity in entities.values():
+            employment = entity.get_component('Employment')
+            if employment and employment.is_employed():
+                employed_count += 1
+                job_type = employment.job_type
+                
+                # Count by job type
+                job_distribution[job_type] = job_distribution.get(job_type, 0) + 1
+                
+                # Track payments by resource type
+                if employment.payment_resources:
+                    if job_type not in payment_by_job:
+                        payment_by_job[job_type] = {}
+                    
+                    for resource_id, amount in employment.payment_resources.items():
+                        if resource_id not in payment_by_job[job_type]:
+                            payment_by_job[job_type][resource_id] = []
+                        payment_by_job[job_type][resource_id].append(amount)
+                        total_payment_by_resource[resource_id] = total_payment_by_resource.get(resource_id, 0.0) + amount
+        
+        # Calculate employment rate
+        employment_rate = (employed_count / total_population * 100) if total_population > 0 else 0.0
+        
+        # Calculate average payment (for backward compat, use money if available, else sum all)
+        avg_payment = 0.0
+        if employed_count > 0:
+            if 'money' in total_payment_by_resource:
+                avg_payment = total_payment_by_resource['money'] / employed_count
+            elif total_payment_by_resource:
+                # Sum all payments if no money
+                total_all = sum(total_payment_by_resource.values())
+                avg_payment = total_all / employed_count
+        
         # Calculate birth and death rates (per 1000 population per year)
         birth_rate_str = "N/A"
         death_rate_str = "N/A"
@@ -763,6 +802,37 @@ class Simulation:
         logger.info(f"    At Risk: {at_risk_count:,} ({at_risk_percent:.1f}%)")
         logger.info(f"    Birth Rate: {birth_rate_str} per 1000/year")
         logger.info(f"    Death Rate: {death_rate_str} per 1000/year")
+        logger.info("")
+        logger.info(f"  Employment: {employed_count:,}/{total_population:,} ({employment_rate:.1f}%)")
+        if employed_count > 0:
+            # Show average payment (prefer money, else show all)
+            if 'money' in total_payment_by_resource:
+                avg_money = total_payment_by_resource['money'] / employed_count
+                logger.info(f"    Avg Payment: money={avg_money:.2f}")
+            elif total_payment_by_resource:
+                payment_summary = ", ".join([
+                    f"{rid}={amt/employed_count:.2f}" 
+                    for rid, amt in total_payment_by_resource.items()
+                ])
+                logger.info(f"    Avg Payment: {payment_summary}")
+            
+            if job_distribution:
+                # Show top 5 jobs by count
+                sorted_jobs = sorted(job_distribution.items(), key=lambda x: x[1], reverse=True)
+                for job_type, count in sorted_jobs[:5]:
+                    job_percent = (count / employed_count * 100) if employed_count > 0 else 0.0
+                    
+                    # Format payment info
+                    payment_info = []
+                    if job_type in payment_by_job:
+                        for resource_id, amounts in payment_by_job[job_type].items():
+                            avg_amount = sum(amounts) / len(amounts)
+                            payment_info.append(f"{resource_id}={avg_amount:.2f}")
+                    
+                    payment_str = ", ".join(payment_info) if payment_info else "N/A"
+                    logger.info(f"    {job_type}: {count:,} ({job_percent:.1f}%) - Avg: {payment_str}")
+                if len(sorted_jobs) > 5:
+                    logger.info(f"    ... and {len(sorted_jobs) - 5} more job types")
         logger.info("")
         logger.info("  Resources:")
         for change in resource_changes:
