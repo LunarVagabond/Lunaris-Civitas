@@ -47,6 +47,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Goal:** Scarcity exists. Resources can be produced, consumed, and replenished.
 
 **Deliverables:**
+
 - `Resource` model (food, water, electricity, oil, etc.)
 - Resource production system (natural/baseline)
 - Resource consumption system (natural/baseline - decay, evaporation)
@@ -57,6 +58,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **No humans yet** - just abstract consumers/producers.
 
 **Why This First:**
+
 - Lets you debug depletion, growth, collapse
 - Sets up economic pressure *before* humans exist
 - Establishes baseline natural processes
@@ -72,6 +74,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Human Components:**
+
 - `Needs`: hunger, thirst, rest
 - `Inventory`: personal resources
 - `Health`: simple health status
@@ -82,6 +85,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - `Household`: household linkage
 
 **Systems:**
+
 - `HumanSpawnSystem`: Creates initial population and runtime spawning (TEMPORARY PLACEHOLDER for Phase 4 reproduction system)
 - `NeedsSystem`: Updates needs with randomized per-entity decay rates (hourly ticks)
 - `HumanNeedsFulfillmentSystem`: Actively fulfills needs through RequirementResolverSystem (hourly ticks)
@@ -90,12 +94,14 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - `RequirementResolverSystem`: Resolves resource requirements through multiple sources
 
 **Constraints:**
+
 - No families (household component exists but not fully utilized)
 - No jobs (employment component exists but not fully utilized)
 - Basic money/wealth tracking
 - Just survival
 
 **Success Criteria:**
+
 - ✅ Humans can survive with adequate resources
 - ✅ Humans die when resources depleted
 - ✅ Population can grow/shrink based on resource availability
@@ -113,6 +119,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Goal:** Humans can produce resources through jobs, enabling sustainable resource generation.
 
 **Why This Was Critical:**
+
 - Simulation showed food running out quickly (natural production insufficient)
 - Humans were dying from hunger faster than resources could be replenished
 - Jobs enable humans to actively contribute to resource production (farmers → food, etc.)
@@ -120,11 +127,13 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - ✅ `Employment`: Enhanced with job assignment, payment tracking, salary caps
 - ✅ `Skills`: Core traits (charisma, intelligence, strength, creativity, work_ethic) and job-specific skills
 - ✅ `Wealth`: Extended to support multiple resource types (money, crypto, bananas, etc.)
 
 **Systems:**
+
 - ✅ `JobSystem`: Job assignment, resource production, and payment distribution
   - Assigns jobs to entities based on skills, charisma, age, and dynamic hiring chance
   - Jobs produce resources based on job type and worker count
@@ -135,6 +144,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - ✅ `JobHistorySystem`: Tracks employment statistics over time
 
 **Features:**
+
 - ✅ Job types: `farmer` (produces food), `miner` (produces raw materials), `teacher` (service), etc.
 - ✅ Jobs produce resources directly into world state
 - ✅ Production rates configurable per job type
@@ -148,6 +158,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - ✅ History tracking for employment rates, job distribution, average salaries
 
 **Design Decisions:**
+
 - ✅ Jobs can pay in any resource type (not just money) - fully configurable
 - ✅ Payment stored as `payment_resources: {resource_id: amount}` dictionary
 - ✅ Market costs can require multiple resource types (e.g., money + crypto)
@@ -157,11 +168,21 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - ✅ Foundation for later economy system (Phase 6)
 
 **Why This Matters:**
+
 - ✅ **Critical for survival**: Enables sustainable food production
 - ✅ Humans become active contributors to world resources
 - ✅ Foundation for economy (Phase 6 will enhance with markets)
 - ✅ Addresses food scarcity crisis in simulation
 - ✅ Flexible payment system supports diverse economic models
+
+**Known Limitations:**
+
+- **Job Limits Not Exact**: Percentage-based job limits (e.g., max 10% of population) are calculated dynamically, but population can grow faster than jobs open. Jobs may reach capacity and remain full even as population increases, creating unemployment pressure. This is intentional - real-world companies don't always hire immediately when population grows. Phase 6 will introduce companies with capital constraints to make this more realistic.
+
+**Temporary Solutions:**
+
+- Money resource replenishes monthly (5000/month) to prevent running out - will be replaced by proper economic systems in Phase 6
+- Unpaid workers automatically quit - real-world consequence that will be better managed with company system in Phase 6
 
 ---
 
@@ -172,6 +193,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Goal:** Proper population dynamics through realistic reproduction, replacing spawn rate placeholder.
 
 **Why This Is Critical:**
+
 - Current `HumanSpawnSystem` uses simple spawn rate (temporary placeholder)
 - Need proper reproduction based on fertility, relationships, age
 - Population needs to grow/decline naturally based on conditions
@@ -179,17 +201,20 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - `Fertility`: reproduction capability, age-based fertility curves
 - `Relationship`: partner/parent relationships (for reproduction)
 - `Pregnancy`: tracks pregnancy state and duration
 - `Dependency`: infant/child dependency periods
 
 **Systems:**
+
 - `ReproductionSystem`: Handles births based on fertility and relationships (month/year ticks)
 - `AgingSystem`: Age progression (already exists, may need enhancement)
 - `RelationshipSystem`: Manages partnerships and family structures
 
 **Features:**
+
 - Age-based fertility curves (peak fertility 20-35, declines with age)
 - Reproduction requires partners (relationships)
 - Pregnancy duration (9 months)
@@ -199,12 +224,14 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Replaces `HumanSpawnSystem` runtime spawning
 
 **Design Decisions:**
+
 - Probabilistic reproduction (not deterministic)
 - Requires relationships/partnerships
 - Birth rates affected by resource availability (scarcity reduces birth rates)
 - Foundation for demographic modeling
 
 **Why This Matters:**
+
 - Replaces temporary spawn system with realistic reproduction
 - Enables proper demographic modeling
 - Population dynamics emerge from conditions
@@ -222,16 +249,19 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - `Action` component - Current action being performed
 - `ActionQueue` component - Planned actions
 - `Traits` component - Individual characteristics (sleep needs, metabolism, etc.)
 
 **Systems:**
+
 - `ActionSystem` - Manages entity actions and state transitions (hourly ticks)
 - `ActionSchedulerSystem` - Plans actions based on needs and priorities (hourly ticks)
 - `TraitSystem` - Applies trait effects to actions and needs (hourly ticks)
 
 **Features:**
+
 - Action types: `eat`, `sleep`, `work`, `rest`, `travel`, etc.
 - Actions take time (e.g., sleep 6-12 hours)
 - Entities are "occupied" during actions (can't perform other actions)
@@ -243,6 +273,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Action interruption (emergency needs override current action)
 
 **Design Decisions:**
+
 - Actions are time-based, not instant
 - Entities can only perform one action at a time
 - Actions can be interrupted by critical needs
@@ -250,6 +281,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Action system enables more realistic behavior modeling
 
 **Why This Matters:**
+
 - Makes entity behavior more realistic
 - Enables proper sleep cycles (entities sleep 6-12 hours)
 - Foundation for work schedules, daily routines
@@ -262,35 +294,69 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 
 **Status:** 🔜 Planned
 
-**Goal:** Full economic system with money, wages, and markets.
+**Goal:** Full economic system with money, wages, markets, and companies.
 
 **Deliverables:**
 
 **Components:**
-- `Employment`: Enhanced with wages (already exists, needs wage system)
-- `Wealth`: money/resources owned (already exists, needs market integration)
-- `Household`: shared inventory for families (already exists, needs enhancement)
+
+- `Employment`: Enhanced with payment system (✅ Phase 3 complete)
+- `Wealth`: Multiple resource types supported (✅ Phase 3 complete)
+- `Household`: Shared inventory for families (already exists, needs enhancement)
+- `Company`: Company entity with capital, payroll budget, profitability
+- `Business`: Business type, industry sector, market position
 
 **Systems:**
+
 - `MarketSystem`: Basic resource trading (day/month ticks)
-- `WageSystem`: Wage distribution based on jobs (month ticks)
+- `WageSystem`: Wage distribution based on jobs (month ticks) - Payment system exists, needs market integration
+- `CompanySystem`: Company management, hiring decisions, capital management
 - `HouseholdSystem`: Shared resources within families
 - `TransferSystem`: Inter-generational wealth transfer
+- `EconomicPressureSystem`: Tracks unemployment, economic stress, market conditions
 
 **Features:**
-- Jobs pay wages (money/resources)
+
+- ✅ Jobs pay wages in any resource type (Phase 3 complete)
 - Markets enable resource trading
 - Wages enable resource purchase
 - Households share resources
 - Basic market dynamics
 - Prices fluctuate based on supply/demand
+- **Company System**:
+  - Companies have capital/resource budgets
+  - Companies can only hire when they have sufficient capital for payroll
+  - Companies grow/shrink based on profitability
+  - Creates realistic unemployment when companies can't afford workers
+  - Job openings depend on company financial health, not just population %
+  - Enables corporate dynamics and economic modeling
+- **Economic Pressure**:
+  - Unemployment creates societal pressure
+  - Companies compete for workers when labor is scarce
+  - Companies lay off workers when capital is low
+  - Economic cycles and recessions
 
 **Constraints:**
+
 - No corruption yet
 - No crime yet
-- Simple economic model
+- Simple economic model initially
 
-**Note:** This builds on Phase 3 Job System, adding wages and markets to the resource production foundation.
+**Design Decisions:**
+
+- Companies are entities with their own resources/capital
+- Hiring decisions based on company financial health
+- Job limits become dynamic based on company capacity, not just population %
+- Creates realistic economic constraints and pressure
+- Replaces temporary money generation from Phase 3
+
+**Known Limitations from Phase 3:**
+
+- Current percentage-based job limits can result in jobs being "full" even as population grows
+- This is intentional - real-world companies don't always hire immediately
+- Company system will make this more realistic with capital constraints
+
+**Note:** This builds on Phase 3 Job System, adding companies, markets, and proper economic constraints to replace temporary money generation.
 
 ---
 
@@ -303,22 +369,26 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - `Location`: geographic position
 - `Area`: regions/zones with properties
 - `Weather`: climate conditions
 
 **Systems:**
+
 - `WeatherSystem`: Climate patterns (day/month ticks)
 - `MigrationSystem`: Population movement (month/year ticks)
 - `ResourceLocalitySystem`: Resource distribution by area
 
 **Features:**
+
 - Areas have different resource availability
 - Weather affects production/replenishment
 - Migration based on resource scarcity
 - Regional economic differences
 
 **Impact:**
+
 - Scarcity feels *real*
 - Enables disaster modeling
 - Foundation for political boundaries
@@ -334,17 +404,20 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - `Disease`: disease entity with properties
 - `Immunity`: resistance to diseases
 - `Healthcare`: medical capacity
 
 **Systems:**
+
 - `DiseaseSystem`: Disease spread and transmission (hour/day ticks)
 - `HealthSystem`: Health status updates (hour/day ticks)
 - `PandemicSystem`: Configurable pandemic events (year ticks)
 - `HealthcareSystem`: Medical treatment capacity
 
 **Features:**
+
 - Disease entities with transmission rates
 - Mortality & immunity tracking
 - Healthcare capacity limits
@@ -352,6 +425,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Contact-based transmission
 
 **Expert-Facing Milestone:**
+
 - This is a major "expert-facing" milestone
 - Enables epidemiological research
 - Foundation for public health policy modeling
@@ -367,17 +441,20 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - `Crime`: criminal activity tracking
 - `Corruption`: corruption level
 - `LawEnforcement`: policing capacity
 
 **Systems:**
+
 - `CrimeSystem`: Crime generation based on stress/resources (day/month ticks)
 - `PolicingSystem`: Law enforcement and detection (day ticks)
 - `CorruptionSystem`: Corruption spread (month ticks)
 - `PunishmentSystem`: Prison/punishment effects
 
 **Features:**
+
 - Probabilistic crime generation
 - Detection probabilities
 - Bribes and corruption
@@ -385,6 +462,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Crime affects resource distribution
 
 **Design Note:**
+
 - Mostly probabilistic systems layered over economy + stress
 - Crime emerges from scarcity and inequality
 - Policing effectiveness affects crime rates
@@ -400,17 +478,20 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Components:**
+
 - `PoliticalAffiliation`: party/group membership
 - `Government`: governing body
 - `Policy`: policy modifiers
 
 **Systems:**
+
 - `PoliticsSystem`: Political group formation (year ticks)
 - `GovernmentSystem`: Policy implementation (month/year ticks)
 - `PolicySystem`: Policy effects as modifiers
 - `RevolutionSystem`: Unrest and regime change
 
 **Features:**
+
 - Political parties/groups
 - Governments implement policies
 - Policies are modifiers applied to systems
@@ -418,6 +499,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Policy effects cascade through systems
 
 **Key Insight:**
+
 - Policies literally are: "Modifiers applied to systems"
 - Enables policy experimentation
 - Foundation for political science research
@@ -433,6 +515,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Features:**
+
 - Read-only queries
 - Watch specific humans
 - Statistics feeds
@@ -440,11 +523,13 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Real-time updates
 
 **Future Enhancements:**
+
 - Let users *be born* (probabilistic influence)
 - Influence decisions probabilistically
 - Never full control (keeps it scientific)
 
 **Why Discord:**
+
 - Forces observability
 - Humanizes stats
 - Surfaces weird emergent behavior
@@ -462,6 +547,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 **Deliverables:**
 
 **Features:**
+
 - Scenario configs
 - Batch runs
 - Output CSVs
@@ -470,6 +556,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Statistical analysis tools
 
 **Research Capabilities:**
+
 - Run multiple scenarios
 - Compare outcomes
 - Export data for analysis
@@ -477,6 +564,7 @@ Lunaris Civitas is being developed in phases, building from a minimal core engin
 - Academic-grade outputs
 
 **Target Audience:**
+
 - Epidemiologists
 - Economists
 - Political scientists
@@ -522,6 +610,7 @@ Responsibilities:
 - Deterministic RNG (seeded)
 
 **It should NOT know:**
+
 - What hunger is
 - What crime is
 - What politics is
@@ -596,6 +685,38 @@ When adding a new system:
 
 ## Future Considerations
 
+### Logging & Observability Improvements
+
+**Status:** Medium-High Priority
+
+**Problem:** Log files are becoming unreadable due to verbosity. Example: 35+ individual lines for payment raises makes it impossible to see important events.
+
+**Solutions:**
+
+1. **Log Batching/Aggregation:**
+   - Group similar events into summary lines
+   - Example: "35 entities received payment raises (avg 3.2%, range 2.0-5.0%)" instead of 35 individual lines
+   - Configurable aggregation level per system/event type
+   - Summary lines with option to expand details
+   - Reduces log noise while preserving information
+
+2. **Watched List System:**
+   - Mark entities/resources/jobs as "watched" for detailed logging
+   - Watched items log all actions/events in detail
+   - Unwatched items use aggregated/batched logging
+   - Can watch: entities (by ID), resources (by ID), job types, or patterns
+   - Enables focused debugging without log spam
+   - Example config:
+     ```yaml
+     logging:
+       watched:
+         entities: [entity_id_1, entity_id_2]
+         resources: [food, money]
+         jobs: [teacher, farmer]
+     ```
+
+**When to Implement:** Soon - log files are already difficult to read with current population sizes.
+
 ### Interface/Context Objects
 
 **Status:** Deferred
@@ -610,13 +731,13 @@ Consider adding standardized interfaces for resource operations when:
 
 ### ECS Implementation
 
-**Status:** Deferred until Phase 2
+**Status:** ✅ Complete (Phase 2)
 
-When humans are added, implement ECS-lite:
+ECS-lite implemented:
 - Simple component system
-- Not over-engineered
 - Systems operate on components
 - Easy to extend
+- Component registration and discovery working
 
 ---
 

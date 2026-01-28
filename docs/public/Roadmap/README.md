@@ -18,6 +18,10 @@ The simulation engine now supports:
 - SQLite persistence
 - Config-driven initialization
 
+**Known Limitations:**
+- Job limits are percentage-based and may not open immediately as population grows (intentional - real-world behavior)
+- Companies with capital constraints will be added in Phase 6 to make hiring more realistic
+
 **Next Priority:** **Phase 4 (Reproduction System)** - Critical for population sustainability
 
 ## Development Phases

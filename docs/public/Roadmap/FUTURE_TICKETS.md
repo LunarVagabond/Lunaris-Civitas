@@ -6,61 +6,67 @@ This document tracks planned features, improvements, and technical debt for futu
 
 ## Phase 2: Base Human (Minimal Survival)
 
+**Status:** ✅ Complete
+
 ### Core Human Components
-- [ ] `Needs` component (hunger, thirst, rest)
-- [ ] `Inventory` component (personal resources)
-- [ ] `Health` component (simple health status)
-- [ ] `Age` component (birth date, lifespan)
+- [x] `Needs` component (hunger, thirst, rest)
+- [x] `Inventory` component (personal resources)
+- [x] `Health` component (simple health status)
+- [x] `Age` component (birth date, lifespan)
+- [x] `Pressure` component (unmet resource requirements)
+- [x] `Wealth` component (money/resources)
+- [x] `Household` component (household linkage)
 
 ### Systems
-- [ ] `NeedsSystem` - Updates needs (minute/hour ticks)
-- [ ] `HumanConsumptionSystem` - Humans consume resources based on needs (day ticks)
-- [ ] `DeathSystem` - Handles death from starvation, thirst, age
+- [x] `NeedsSystem` - Updates needs (hourly ticks)
+- [x] `HumanNeedsFulfillmentSystem` - Fulfills needs through RequirementResolverSystem
+- [x] `DeathSystem` - Handles death from starvation, thirst, age
+- [x] `RequirementResolverSystem` - Resolves resource requirements through multiple sources
 
 ### Infrastructure
-- [ ] ECS-lite implementation (simple component system)
-- [ ] Entity registry in world state
-- [ ] Component storage system
-- [ ] Human entity creation from config
+- [x] ECS-lite implementation (simple component system)
+- [x] Entity registry in world state
+- [x] Component storage system
+- [x] Human entity creation from config
 
 ### Testing
-- [ ] Unit tests for human components
-- [ ] Integration tests for survival mechanics
-- [ ] Determinism tests with humans
+- [x] Unit tests for human components
+- [x] Integration tests for survival mechanics
+- [x] Determinism tests with humans
 
 ---
 
 ## Phase 3: Job System (Resource Production)
 
-**Status:** 🔜 **NEXT PRIORITY** - Critical for resource sustainability
+**Status:** ✅ Complete
 
-**Why Critical:** Food is running out quickly. Humans need jobs to produce resources (farmers → food, etc.)
+**Why Critical:** Food was running out quickly. Humans needed jobs to produce resources (farmers → food, etc.)
 
 ### Components
-- [x] `Employment` component (exists, needs enhancement for job assignment)
-- [ ] `JobAssignment` component - Tracks job assignments and production rates
+- [x] `Employment` component - Enhanced with job assignment, payment tracking, salary caps
+- [x] `Skills` component - Core traits and job-specific skills
+- [x] `Wealth` component - Extended to support multiple resource types
 
 ### Systems
-- [ ] `JobSystem` - Job assignment and resource production (hourly/month ticks)
-  - Assigns jobs to entities (farmers, miners, water_workers, etc.)
-  - Jobs produce resources directly into world state
-  - Production rates scale with number of workers
-  - Work hours/rest cycles
+- [x] `JobSystem` - Job assignment, resource production, and payment distribution
+- [x] `JobHistorySystem` - Employment statistics tracking
 
 ### Features
-- [ ] Job types: `farmer` (produces food), `miner` (produces raw materials), `water_worker` (produces water), etc.
-- [ ] Job assignment logic (probabilistic, based on needs/capabilities)
-- [ ] Resource production directly into world state (not through money yet)
-- [ ] Production rates configurable per job type
-- [ ] Production scales with number of workers
-- [ ] Work hours/rest cycles (can't work 24/7)
-- [ ] Foundation for later economy system (Phase 6)
+- [x] Job types: `farmer`, `miner`, `teacher`, `burger_flipper`, etc.
+- [x] Job assignment logic (probabilistic, based on skills, charisma, age)
+- [x] Resource production directly into world state
+- [x] Payment in any resource type (money, crypto, bananas, etc.)
+- [x] Production rates configurable per job type
+- [x] Production scales with number of workers
+- [x] Percentage-based job limits
+- [x] Dynamic hiring chance (increases when jobs are "needy")
+- [x] Salary increases and job loss mechanisms
 
 ### Design Decisions
-- Jobs produce resources directly (wages/markets come in Phase 6)
-- Simple job assignment (probabilistic)
-- Production scales with number of workers
-- Addresses current food scarcity crisis
+- Jobs can pay in any resource type (fully configurable)
+- Payment stored as `payment_resources: {resource_id: amount}` dictionary
+- Everything config-driven - no hardcoded values
+- Config persisted in database (resume doesn't reload from config file)
 
 ### Temporary Solutions (Phase 3)
 - **Money Generation**: Money resource currently replenishes monthly (5000/month) to prevent running out
@@ -69,6 +75,18 @@ This document tracks planned features, improvements, and technical debt for futu
 - **Unpaid Worker Quitting**: If workers are not paid (insufficient world money), they quit their jobs
   - This is a real-world problem that can happen
   - In Phase 6, proper economic systems will prevent money shortages
+
+### Known Limitations & Future Improvements
+
+- **Job Limits Not Exact**: Percentage-based job limits (e.g., max 10% of population) are calculated dynamically, but population can grow faster than jobs open. Jobs may reach capacity and remain full even as population increases, creating unemployment pressure. This is intentional - real-world companies don't always hire immediately when population grows.
+
+- **No Company/Employer Entities**: Current system treats all jobs as self-employed or abstract "world" employers. Future system should introduce:
+  - `Company` entity type with capital/resource constraints
+  - Companies have limited budgets for payroll
+  - Companies can only hire when they have sufficient capital
+  - Creates realistic economic pressure and unemployment
+  - Enables company growth/shrinkage based on profitability
+  - Foundation for corporate dynamics and economic modeling
 
 ---
 
@@ -153,29 +171,51 @@ This document tracks planned features, improvements, and technical debt for futu
 
 **Status:** 🔜 Planned
 
-**Goal:** Full economic system with money, wages, and markets.
+**Goal:** Full economic system with money, wages, markets, and companies.
 
 ### Components
-- [x] `Employment` component (exists, needs wage system)
-- [x] `Wealth` component (exists, needs market integration)
+- [x] `Employment` component (exists, enhanced with payment system)
+- [x] `Wealth` component (exists, supports multiple resource types)
 - [x] `Household` component (exists, needs enhancement)
+- [ ] `Company` component - Company entity with capital, payroll budget, profitability
+- [ ] `Business` component - Business type, industry sector, market position
 
 ### Systems
 - [ ] `MarketSystem` - Basic resource trading (day/month ticks)
 - [ ] `WageSystem` - Wage distribution based on jobs (month ticks)
+- [ ] `CompanySystem` - Company management, hiring decisions, capital management
 - [ ] `HouseholdSystem` - Shared resources within families
 - [ ] `TransferSystem` - Inter-generational wealth transfer
+- [ ] `EconomicPressureSystem` - Tracks unemployment, economic stress, market conditions
 
 ### Features
-- [ ] Jobs pay wages (money/resources)
+- [ ] Jobs pay wages (money/resources) - ✅ Already implemented in Phase 3
 - [ ] Markets enable resource trading
 - [ ] Wages enable resource purchase
 - [ ] Households share resources
 - [ ] Basic market dynamics
 - [ ] Prices fluctuate based on supply/demand
+- [ ] **Company System**:
+  - Companies have capital/resource budgets
+  - Companies can only hire when they have sufficient capital for payroll
+  - Companies grow/shrink based on profitability
+  - Creates realistic unemployment when companies can't afford workers
+  - Job openings depend on company financial health, not just population %
+  - Enables corporate dynamics and economic modeling
+- [ ] **Economic Pressure**:
+  - Unemployment creates societal pressure
+  - Companies compete for workers when labor is scarce
+  - Companies lay off workers when capital is low
+  - Economic cycles and recessions
+
+### Design Decisions
+- Companies are entities with their own resources/capital
+- Hiring decisions based on company financial health
+- Job limits become dynamic based on company capacity, not just population %
+- Creates realistic economic constraints and pressure
 
 ### Note
-This builds on Phase 3 Job System, adding wages and markets to the resource production foundation.
+This builds on Phase 3 Job System, adding companies, markets, and proper economic constraints to replace temporary money generation.
 
 ---
 
@@ -300,6 +340,33 @@ This builds on Phase 3 Job System, adding wages and markets to the resource prod
 ---
 
 ## Technical Debt & Improvements
+
+### Configuration Management
+- [ ] **Modular YAML Config Loader** - Split `dev.yml` into system-specific config files
+  - Each system has its own config file (e.g., `configs/systems/job_system.yml`)
+  - Main config file imports/merges system configs
+  - Easier to manage and version control
+  - Reduces conflicts when multiple developers work on different systems
+  - Priority: High (config file is getting large and unwieldy)
+
+### Logging & Observability
+
+- [ ] **Log Batching/Aggregation** - Reduce log verbosity by grouping similar events
+  - Batch similar events (e.g., "35 entities received payment raises" instead of 35 individual lines)
+  - Aggregate statistics: "Payment raises: 35 entities, avg 3.2%, range 2.0-5.0%"
+  - Configurable aggregation level (per system, per event type)
+  - Summary lines with details available on demand
+  - Reduces log noise while preserving important information
+  - Priority: Medium-High (log files are becoming unreadable)
+
+- [ ] **Watched List System** - Mark entities/resources/jobs for detailed logging
+  - Config file or runtime command to mark entities as "watched"
+  - Watched entities log all actions/events in detail
+  - Unwatched entities use aggregated/batched logging
+  - Can watch: entities (by ID), resources (by ID), job types, or patterns
+  - Example: `watched_entities: [entity_id_1, entity_id_2]` or `watched_jobs: [teacher, farmer]`
+  - Enables focused debugging and observation without log spam
+  - Priority: Medium-High (complements log batching)
 
 ### Core Engine
 - [ ] Consider interface/context objects for resource operations (when needed)
